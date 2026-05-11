@@ -483,7 +483,95 @@ const customers = [
       },
     ]
   },
-  { key:"martin", label:"Martin & Servera", hasData:false, days:[] },
+  {
+    key:"martin", label:"Martin & Servera", hasData:true,
+    days:[
+      {
+        key:"1105", label:"11 maj", totalRoutes:23,
+        avvikelser:[
+          {id:"01H1",area:"SDL",type:"late",stops:[
+            {name:"1-CG RST ORTVIKEN SVALL 6293",window:"09:00–12:00",actual:"08:32",diff:"−28 min"},
+            {name:"9-CL S-VALL 230 ALACARTE",window:"07:00–10:00",actual:"11:06",diff:"+1h 6min"},
+            {name:"10-CL S-VALL 250 BAR",window:"07:00–10:00",actual:"11:07",diff:"+1h 7min"},
+            {name:"12-KRISTINELUND VÅNING 1",window:"07:30–11:30",actual:"13:09",diff:"+1h 39min"},
+            {name:"13-KRISTINELUND VÅNING 2",window:"07:30–11:30",actual:"13:09",diff:"+1h 39min"},
+            {name:"14-KRISTINELUND VÅNING 3",window:"07:30–11:30",actual:"13:09",diff:"+1h 39min"},
+            {name:"15-KRISTINELUND VÅNING 4",window:"07:30–11:30",actual:"13:10",diff:"+1h 40min"},
+            {name:"16-KRISTINELUND VÅNING 5",window:"07:30–11:30",actual:"13:10",diff:"+1h 40min"},
+            {name:"17-KRISTINELUND BV ÄLDREBOEND",window:"07:30–11:30",actual:"13:13",diff:"+1h 43min"},
+            {name:"19-KULANS FÖRSKOLA",window:"08:00–12:00",actual:"13:13",diff:"+1h 13min"},
+            {name:"20-MELLANNORRLANDS HOSPICE",window:"10:00–13:00",actual:"13:13",diff:"+13 min"},
+          ]},
+          {id:"02H1",area:"SDL",type:"late",stops:[
+            {name:"1-QH S-VALL",window:"07:00–10:00",actual:"10:14",diff:"+14 min"},
+            {name:"2-QH S-VALL FRUKOST",window:"07:00–10:00",actual:"10:14",diff:"+14 min"},
+            {name:"3-GHU QUALITY HOTEL S-VALL",window:"07:00–10:00",actual:"10:15",diff:"+15 min"},
+            {name:"5-COOR SUNDSVALL NY",window:"07:00–10:00",actual:"13:13",diff:"+3h 13min"},
+            {name:"7-KRISTNA SKOLAN OASEN",window:"09:00–12:00",actual:"13:13",diff:"+1h 13min"},
+            {name:"1-JURESKOGS SUNDSVALL",window:"09:30–11:30",actual:"13:13",diff:"+1h 43min"},
+          ]},
+          {id:"08H1",area:"SDL",type:"late",stops:[
+            {name:"3-ASTAR SUNDSVALL",window:"06:00–08:00",actual:"08:13",diff:"+13 min"},
+            {name:"4-INVITO SUNDSVALL",window:"07:00–08:00",actual:"09:06",diff:"+1h 6min"},
+            {name:"BALTIC HOTELL BEST WESTERN",window:"06:30–08:30",actual:"09:10",diff:"+40 min"},
+            {name:"5-BALTIC HOTELL BEST WESTERN",window:"06:30–08:30",actual:"08:42",diff:"+12 min"},
+            {name:"6-ELITE SUNDSVALL KNAUST FRU",window:"07:00–10:00",actual:"10:02",diff:"+2 min"},
+            {name:"7-ELITE SUNDSVALL KNAUST",window:"07:00–10:00",actual:"10:02",diff:"+2 min"},
+          ]},
+          {id:"12H1",area:"SDL",type:"early",stops:[
+            {name:"1-HELIÅS KUNSKAPSCENTRUM",window:"08:00–11:00",actual:"07:31",diff:"−29 min"},
+            {name:"3-TINGSTA ÄLDREBOENDE",window:"09:00–13:00",actual:"07:45",diff:"−1h 15min"},
+            {name:"5-SOLEDE SKOLA",window:"09:00–13:00",actual:"07:55",diff:"−1h 5min"},
+            {name:"6-NOLBYKULLENS FÖRSKOLA",window:"09:00–13:00",actual:"08:05",diff:"−55 min"},
+            {name:"7-NIVRENASKOLAN",window:"09:00–13:00",actual:"08:18",diff:"−42 min"},
+            {name:"8-COPERNICUS FÖRSKOLA",window:"10:00–14:00",actual:"08:26",diff:"−1h 34min"},
+            {name:"9-ESSVIKS SKOLA",window:"10:00–14:00",actual:"08:50",diff:"−1h 10min"},
+            {name:"SKOTTSUNDS KÖK",window:"10:00–14:00",actual:"08:58",diff:"−1h 2min"},
+            {name:"10-SKOTTSUNDS KÖK",window:"10:00–14:00",actual:"08:57",diff:"−1h 3min"},
+            {name:"12-SKOTTSUNDSBACKEN 2",window:"10:00–14:00",actual:"09:13",diff:"−47 min"},
+            {name:"14-SKOTTSUNDSBACKEN 4",window:"10:00–14:00",actual:"09:13",diff:"−47 min"},
+            {name:"15-SKOTTSUNDSBACKEN 5",window:"10:00–14:00",actual:"09:14",diff:"−46 min"},
+            {name:"16-SKOTTSUNDSBACKEN 6",window:"10:00–14:00",actual:"09:14",diff:"−46 min"},
+            {name:"18-SKOTTSUNDSBACKEN 8",window:"10:00–14:00",actual:"09:16",diff:"−44 min"},
+            {name:"19-SKOTTSUND FÖRSKOLA",window:"10:00–14:00",actual:"09:28",diff:"−32 min"},
+          ]},
+          {id:"21H1",area:"SDL",type:"late",stops:[
+            {name:"6-HERNÖ GIN HOTEL FRUKOST",window:"08:00–11:00",actual:"07:53",diff:"−7 min"},
+            {name:"7-HERNÖ GIN HOTEL REST 1",window:"08:00–11:00",actual:"07:54",diff:"−6 min"},
+            {name:"12-FIRST HOTELL HÄRNÖSAND",window:"07:00–10:00",actual:"10:17",diff:"+17 min"},
+            {name:"14-ST PETRI LOGEN RESTAURANG",window:"08:00–10:00",actual:"10:18",diff:"+18 min"},
+          ]},
+          {id:"44H1",area:"SDL",type:"early",stops:[
+            {name:"4-SNURRANS FÖRSKOLA",window:"08:00–12:00",actual:"07:38",diff:"−22 min"},
+            {name:"16-BB SUNDSVALL FOOD",window:"14:00–17:00",actual:"13:13",diff:"−47 min"},
+          ]},
+          {id:"60L1",area:"SDL",type:"late",stops:[
+            {name:"1-SEGERSTA SKOLA",window:"07:30–14:00",actual:"07:26",diff:"−4 min"},
+            {name:"31-TORSBERGSGYMN SKOLM",window:"07:30–10:30",actual:"10:35",diff:"+5 min"},
+            {name:"52-CAFE STADSHUSET",window:"07:00–11:00",actual:"11:26",diff:"+26 min"},
+            {name:"2-SÖRÄNGS SKOLA",window:"08:00–14:00",actual:"07:50",diff:"−10 min"},
+          ]},
+          {id:"62L1",area:"SDL",type:"early",stops:[
+            {name:"14-NORRTULLSSKOLAN KÖK",window:"07:00–11:00",actual:"06:31",diff:"−29 min"},
+            {name:"26-SYSTRARNA SÖDERSTRÖM",window:"11:30–14:30",actual:"10:51",diff:"−39 min"},
+            {name:"27-VILJAN SELF HELP KLINIK",window:"10:00–13:00",actual:"09:40",diff:"−20 min"},
+          ]},
+          {id:"74H1",area:"SDL",type:"late",stops:[
+            {name:"9-KUBEN FÖRSKOLA",window:"08:00–12:00",actual:"12:44",diff:"+44 min"},
+            {name:"10-SKÖNSMONS SKOLA KÖK",window:"08:00–12:00",actual:"12:44",diff:"+44 min"},
+            {name:"12-S:T OLOFSSKOLAN",window:"09:00–13:00",actual:"13:13",diff:"+13 min"},
+            {name:"13-VRETENS FÖRSKOLA",window:"09:00–13:00",actual:"13:13",diff:"+13 min"},
+            {name:"14-MONTESSORISKOLAN SUNDSVALL",window:"09:00–12:00",actual:"13:13",diff:"+1h 13min"},
+            {name:"15-FÖRSKOLAN BLÅ DRAKEN",window:"09:00–12:00",actual:"13:13",diff:"+1h 13min"},
+          ]},
+          {id:"90X1",area:"SDL",type:"late",stops:[
+            {name:"10-GYMNASIESKOLAN KÖKET",window:"09:00–13:00",actual:"08:40",diff:"−20 min"},
+            {name:"23-SYDSIDAN RESTAURANG",window:"09:00–12:00",actual:"12:08",diff:"+8 min"},
+          ]},
+        ]
+      }
+    ]
+  },
   { key:"coop_sdl", label:"COOP Sundsvall", hasData:false, days:[] },
   { key:"coop_direkt", label:"COOP Direkt", hasData:false, days:[] },
 ];
@@ -575,17 +663,23 @@ function renderDayTabs() {
 }
 
 function renderFilters() {
+  const c = getCustomer();
+  const areaOptions = c.key === "dagab"
+    ? `<select class="area-select" id="areaSelect" onchange="renderTable()">
+        <option value="all">Alla områden</option>
+        <option value="SDL">SDL</option>
+        <option value="NORR">NORR</option>
+        <option value="OSD">OSD</option>
+       </select>`
+    : `<select class="area-select" id="areaSelect" onchange="renderTable()">
+        <option value="all">Alla körningar</option>
+       </select>`;
   document.getElementById("filters").innerHTML = `
     <span class="filter-label">Filter:</span>
     <button class="flt${typeFilter==="all"?" active":""}" onclick="setType('all')">Alla</button>
     <button class="flt late${typeFilter==="late"?" active":""}" onclick="setType('late')">Sena</button>
     <button class="flt early${typeFilter==="early"?" active":""}" onclick="setType('early')">Tidiga</button>
-    <select class="area-select" id="areaSelect" onchange="renderTable()">
-      <option value="all">Alla områden</option>
-      <option value="SDL">SDL</option>
-      <option value="NORR">NORR</option>
-      <option value="OSD">OSD</option>
-    </select>`;
+    ${areaOptions}`;
 }
 
 function renderDayContent() {

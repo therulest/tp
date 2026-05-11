@@ -572,8 +572,116 @@ const customers = [
       }
     ]
   },
-  { key:"coop_sdl", label:"COOP Sundsvall", hasData:false, days:[] },
-  { key:"coop_direkt", label:"COOP Direkt", hasData:false, days:[] },
+  {
+    key:"coop_sdl", label:"COOP Sundsvall", hasData:true,
+    days:[
+      {
+        key:"v19", label:"Vecka 19", totalRoutes:13,
+        avvikelser:[
+          {id:"7300775101",area:"KoF Nord",type:"late",stops:[
+            {name:"COOP BREDSAND (4 maj)",window:"10:00",actual:"11:32",diff:"+92 min"},
+          ]},
+          {id:"7300775110",area:"KoF Nord",type:"late",stops:[
+            {name:"COOP SKORPED (4 maj)",window:"12:00",actual:"15:56",diff:"+236 min"},
+          ]},
+          {id:"7300775167",area:"KoF Nord",type:"late",stops:[
+            {name:"COOP HÖRNETT (4 maj)",window:"13:00",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"7300775168",area:"KoF Nord",type:"late",stops:[
+            {name:"COOP TIMRÅ (4 maj)",window:"13:30",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"7300775718",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP SUNDSVALL (6 maj)",window:"07:00",actual:"08:00",diff:"+61 min"},
+          ]},
+          {id:"7300775732",area:"KoF Nord",type:"late",stops:[
+            {name:"COOP ULLÅNGER (7 maj)",window:"13:00",actual:"19:03",diff:"+364 min"},
+            {name:"COOP SKORPED (7 maj)",window:"12:00",actual:"19:03",diff:"+423 min"},
+          ]},
+          {id:"7300775772",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP ÖRNSKÖLDSVIK (6 maj)",window:"08:15",actual:"09:18",diff:"+63 min"},
+            {name:"COOP HÖRNETT (6 maj)",window:"06:45",actual:"07:52",diff:"+67 min"},
+            {name:"COOP BJÖRNA (6 maj)",window:"08:30",actual:"10:04",diff:"+94 min"},
+          ]},
+          {id:"7300776134",area:"KoF Nord",type:"late",stops:[
+            {name:"COOP TIMRÅ (8 maj)",window:"13:30",actual:"16:09",diff:"+159 min"},
+          ]},
+          {id:"7300776610",area:"KoF Nord",type:"late",stops:[
+            {name:"COOP HÖRNETT (9 maj)",window:"09:30",actual:"12:42",diff:"+192 min"},
+            {name:"COOP CITY ÖRNSKÖLDSVIK (9 maj)",window:"09:30",actual:"10:48",diff:"+78 min"},
+          ]},
+        ]
+      },
+    ]
+  },
+  {
+    key:"coop_direkt", label:"COOP Direkt", hasData:true,
+    days:[
+      {
+        key:"v19", label:"Vecka 19", totalRoutes:23,
+        avvikelser:[
+          {id:"71000087765",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP ÖSTERSUND (4 maj)",window:"07:30",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000087766",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP SUNDSVALL (4 maj)",window:"07:00",actual:"09:58",diff:"+178 min"},
+          ]},
+          {id:"71000087767",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP HÄRNÖSAND (4 maj)",window:"06:30",actual:"07:46",diff:"+76 min"},
+            {name:"STORA COOP ÖRNSKÖLDSVIK (4 maj)",window:"09:00",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000087802",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP ÖRNÄSET (4 maj)",window:"09:00",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000087902",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP HÄRNÖSAND (5 maj)",window:"06:30",actual:"07:34",diff:"+64 min"},
+          ]},
+          {id:"71000087951",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP AVION (4 maj)",window:"10:00",actual:"—",diff:"Ej rapporterad"},
+            {name:"STORA COOP TOMTEBO (4 maj)",window:"08:30",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000087967",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP SUNDSVALL (5 maj)",window:"07:00",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000087968",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP ÖSTERSUND (5 maj)",window:"07:30",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000088064",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP ÖRNÄSET (6 maj)",window:"00:00",actual:"09:11",diff:"+551 min"},
+            {name:"STORA COOP STORHEDEN LULEÅ (6 maj)",window:"00:00",actual:"08:16",diff:"+496 min"},
+            {name:"STORA COOP PITEÅ (6 maj)",window:"00:00",actual:"06:40",diff:"+400 min"},
+          ]},
+          {id:"71000088066",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP ERSBODA (6 maj)",window:"01:00",actual:"08:52",diff:"+472 min"},
+          ]},
+          {id:"71000088068",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP SUNDSVALL (6 maj)",window:"03:00",actual:"08:08",diff:"+308 min"},
+          ]},
+          {id:"71000088069",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP HÄRNÖSAND (6 maj)",window:"01:00",actual:"06:17",diff:"+317 min"},
+            {name:"STORA COOP ÖRNSKÖLDSVIK (6 maj)",window:"02:00",actual:"09:09",diff:"+429 min"},
+          ]},
+          {id:"71000088137",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP ÖSTERSUND (7 maj)",window:"07:30",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000088141",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP SUNDSVALL (7 maj)",window:"07:00",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000088260",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP SUNDSVALL (7 maj)",window:"07:00",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000088308",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP SUNDSVALL (8 maj)",window:"07:00",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000088341",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP ERSBODA (8 maj)",window:"12:30",actual:"—",diff:"Ej rapporterad"},
+          ]},
+          {id:"71000088421",area:"KoF Nord",type:"late",stops:[
+            {name:"STORA COOP SUNDSVALL (9 maj)",window:"07:00",actual:"08:40",diff:"+100 min"},
+          ]},
+        ]
+      },
+    ]
+  },
 ];
 
 let currentCustomer = "dagab";
@@ -631,7 +739,7 @@ function renderContent() {
     <header>
       <div>
         <h1>${c.label}</h1>
-        <p>Avvikelserapport — tidspassning per dag</p>
+        <p>Avvikelserapport — ${['coop_sdl','coop_direkt'].includes(currentCustomer) ? 'tidspassning per vecka' : 'tidspassning per dag'}</p>
       </div>
     </header>
     <div class="main">

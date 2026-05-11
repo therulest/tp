@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tidspassning</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c27;
+    --surface2: #1f2436;
+    --border: #2a3050;
+    --text: #e2e8f0;
+    --text-muted: #6b7a99;
+    --red: #ff5c5c;
+    --red-bg: rgba(255,92,92,0.08);
+    --red-border: rgba(255,92,92,0.25);
+    --amber: #f5a623;
+    --amber-bg: rgba(245,166,35,0.08);
+    --amber-border: rgba(245,166,35,0.25);
+    --green: #4ade80;
+    --green-bg: rgba(74,222,128,0.08);
+    --accent: #4f7cff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top nav */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav-brand {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.5px;
+    margin-right: 2rem;
+    white-space: nowrap;
+  }
+
+  .nav-brand span { color: var(--accent); }
+
+  .nav-customers {
+    display: flex;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-customers::-webkit-scrollbar { display: none; }
+
+  .nav-btn {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 400;
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .nav-btn:hover { background: var(--surface2); color: var(--text); }
+  .nav-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+  .nav-btn.no-data {
+    opacity: 0.4;
+    cursor: default;
+    position: relative;
+  }
+  .nav-btn.no-data::after {
+    content: "Ingen data";
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .nav-btn.no-data:hover::after { opacity: 1; }
+
+  /* Header */
+  header {
+    padding: 1.5rem 2.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  header h1 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.3rem;
+    font-weight: 600;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  header p {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    margin-top: 4px;
+  }
+
+  /* No data screen */
+  .no-data-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 4rem;
+  }
+
+  .no-data-screen .icon {
+    font-size: 2.5rem;
+    opacity: 0.3;
+  }
+
+  .main { padding: 1.5rem 2.5rem; max-width: 1200px; }
+
+  /* Day tabs */
+  .day-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .day-tab {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 6px 16px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.3px;
+  }
+
+  .day-tab:hover { border-color: var(--accent); color: var(--text); }
+  .day-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+
+  /* Metrics */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 2rem;
+  }
+
+  .metric {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+  }
+
+  .metric-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  .metric-value {
+    font-size: 1.8rem;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .metric-value.green { color: var(--green); }
+  .metric-value.red   { color: var(--red); }
+  .metric-value.amber { color: var(--amber); }
+
+  /* Filters */
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .filter-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 4px;
+  }
+
+  .flt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 5px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .flt:hover { color: var(--text); border-color: #4a5568; }
+  .flt.active { background: var(--surface2); color: var(--text); border-color: #4a5568; font-weight: 600; }
+  .flt.late.active   { border-color: var(--red);   color: var(--red); }
+  .flt.early.active  { border-color: var(--amber); color: var(--amber); }
+
+  select.area-select {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    padding: 5px 28px 5px 14px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7a99'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  select.area-select:focus { outline: none; border-color: var(--accent); }
+
+  /* Table */
+  .table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: var(--surface2); }
+
+  th {
+    text-align: left;
+    padding: 10px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(42,48,80,0.5);
+    vertical-align: middle;
+    color: var(--text);
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr.late-row  { background: var(--red-bg); }
+  tr.early-row { background: var(--amber-bg); }
+  tr.late-row:hover  { background: rgba(255,92,92,0.13); }
+  tr.early-row:hover { background: rgba(245,166,35,0.13); }
+  tr:not(.late-row):not(.early-row):hover { background: var(--surface2); }
+
+  .route-id {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .area-tag {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 6px;
+    background: var(--surface2);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .time-actual {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .time-actual.red   { color: var(--red); }
+  .time-actual.amber { color: var(--amber); }
+
+  .window-txt {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .diff-txt { font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+  .diff-txt.red   { color: var(--red); }
+  .diff-txt.amber { color: var(--amber); }
+
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge.late  { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-border); }
+  .badge.early { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-border); }
+
+  .empty-row td {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+  }
+
+  .good-day {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--green-bg);
+    border: 1px solid rgba(74,222,128,0.25);
+    border-radius: 8px;
+    padding: 1.2rem 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--green);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+
+  @media (max-width: 700px) {
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    header, .main { padding: 1rem; }
+    nav { padding: 0 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">// <span>Tidspassning</span></div>
+  <div class="nav-customers" id="navCustomers"></div>
+</nav>
+
+<div id="appContent"></div>
+
+<script>
+const customers = [
+  {
+    key: "dagab",
+    label: "Dagab",
+    hasData: true,
+    days: [
+      {
+        key:"0505", label:"5 maj", totalRoutes:47,
+        avvikelser:[
+          {id:"402_NORR3-0405",area:"NORR",type:"late",stops:[{name:"WILLYS BODEN LULEVÄGEN",window:"10:00–12:00",actual:"12:43",diff:"+43 min"}]},
+          {id:"402_NORR5-0405",area:"NORR",type:"late",stops:[{name:"WILLYS LULEÅ HAMN",window:"07:30–09:30",actual:"09:41",diff:"+11 min"}]},
+          {id:"402_NORR19-0505",area:"NORR",type:"early",stops:[{name:"WILLYS LYCKSELE FURUVIK",window:"10:00–12:00",actual:"07:04",diff:"−2h 56min"}]},
+          {id:"402_SDL4-0505",area:"SDL",type:"late",stops:[
+            {name:"CIRCLE K BOLLNÄS GÄRDET",window:"10:00–12:00",actual:"15:29",diff:"+3h 29min"},
+            {name:"OKQ8 BOLLNÄS FABRIKSGATAN",window:"11:00–13:00",actual:"15:30",diff:"+2h 30min"},
+            {name:"PREEM BOLLNÄS JÄRNVÄGSGATAN",window:"11:00–13:00",actual:"15:32",diff:"+2h 32min"},
+          ]},
+          {id:"402_SDL5-0505",area:"SDL",type:"early",stops:[{name:"VALLSTA SERVICEBUTIK",window:"11:00–13:00",actual:"08:35",diff:"−2h 25min"}]},
+          {id:"402_SDL7-0505",area:"SDL",type:"early",stops:[{name:"TEMPO RAMVIK HÄLLEDAL",window:"11:00–13:00",actual:"07:52",diff:"−3h 8min"}]},
+          {id:"402_SDL9-0505",area:"SDL",type:"late",stops:[
+            {name:"OKQ8 ÄLANDSBRO NÄSSLANDSVÄGEN",window:"09:00–11:00",actual:"17:17",diff:"+6h 17min"},
+            {name:"CIRCLE K HÄRNÖSAND",window:"07:15–09:15",actual:"17:17",diff:"+8h 2min"},
+          ]},
+          {id:"402_SDL15-0505",area:"SDL",type:"late",stops:[{name:"OKQ8 SUNDSVALL CITY",window:"09:00–11:00",actual:"11:55",diff:"+55 min"}]},
+          {id:"402_SDL19-0505",area:"SDL",type:"late",stops:[{name:"CIRCLE K E4 HUDIKSVALL",window:"07:00–09:00",actual:"09:56",diff:"+56 min"}]},
+          {id:"402_SDL20-0505",area:"SDL",type:"early",stops:[{name:"CIRCLE K LJUSDAL",window:"14:00–16:00",actual:"10:44",diff:"−3h 16min"}]},
+          {id:"402_SDL21-0505",area:"SDL",type:"late",stops:[{name:"CIRCLE K MATFORS",window:"06:00–08:00",actual:"08:19",diff:"+19 min"}]},
+          {id:"402_SDL24-0505",area:"SDL",type:"late",stops:[{name:"OKQ8 JUNSELE KÖPMANGATAN",window:"09:30–11:30",actual:"11:36",diff:"+6 min"}]},
+        ]
+      },
+      {
+        key:"0605", label:"6 maj", totalRoutes:43,
+        avvikelser:[
+          {id:"402_NORR13-0605",area:"NORR",type:"late",stops:[{name:"WILLYS UMEÅ SYD",window:"07:00–09:00",actual:"09:43",diff:"+43 min"}]},
+          {id:"402_NORR5-0505",area:"NORR",type:"early",stops:[{name:"WILLYS PITEÅ BACKCITY",window:"08:30–10:30",actual:"05:56",diff:"−2h 34min"}]},
+          {id:"402_SDL15-0605",area:"SDL",type:"late",stops:[{name:"PB GESÄLLV 1 SUNDSVALL",window:"09:45–11:45",actual:"11:52",diff:"+7 min"}]},
+          {id:"402_SDL19-0605",area:"SDL",type:"late",stops:[{name:"WILLYS HÄRNÖSAND HÄRNÖN",window:"07:00–09:00",actual:"12:10",diff:"+3h 10min"}]},
+          {id:"402_SDL2-0605",area:"SDL",type:"late",stops:[{name:"WILLYS SUNDSVALL ORTVIKEN",window:"06:00–08:00",actual:"08:44",diff:"+44 min"}]},
+          {id:"402_SDL4-0605",area:"SDL",type:"late",stops:[{name:"WILLYS SUNDSVALL BIRSTA",window:"06:00–08:00",actual:"17:52",diff:"+9h 52min"}]},
+        ]
+      },
+      {
+        key:"0705", label:"7 maj", totalRoutes:42,
+        avvikelser:[
+          {id:"402_NORR15-0705",area:"NORR",type:"late",stops:[{name:"WH UMEÅ RÅDHUSESPLANADEN",window:"10:00–12:00",actual:"12:52",diff:"+52 min"}]},
+          {id:"402_NORR17-0705",area:"NORR",type:"late",stops:[{name:"WILLYS UMEÅ ERSBODA",window:"06:00–08:00",actual:"08:17",diff:"+17 min"}]},
+          {id:"402_NORR5-0605",area:"NORR",type:"early",stops:[{name:"WILLYS PITEÅ BACKCITY",window:"08:30–10:30",actual:"06:01",diff:"−2h 29min"}]},
+          {id:"402_OSD4-0705",area:"OSD",type:"late",stops:[{name:"GOTT I ÅRE",window:"10:00–12:00",actual:"13:17",diff:"+1h 17min"}]},
+          {id:"402_SDL17-0705",area:"SDL",type:"late",stops:[{name:"OKQ8 TIMRÅ VITÖGATAN",window:"07:30–09:30",actual:"10:48",diff:"+1h 18min"}]},
+          {id:"402_SDL19-0705",area:"SDL",type:"late",stops:[
+            {name:"OKQ8 RAMSELE STORGATAN",window:"08:00–10:00",actual:"10:13",diff:"+13 min"},
+            {name:"OKQ8 RAMSELE (EXTRA)",window:"08:00–10:00",actual:"10:14",diff:"+14 min"},
+          ]},
+          {id:"402_SDL3-0705",area:"SDL",type:"early",stops:[
+            {name:"PREEM BOLLNÄS JÄRNVÄGSGATAN",window:"12:15–14:15",actual:"10:04",diff:"−2h 11min"},
+            {name:"VALLSTA SERVICEBUTIK",window:"12:15–14:15",actual:"07:53",diff:"−4h 22min"},
+          ]},
+          {id:"402_SDL6-0705",area:"SDL",type:"late",stops:[{name:"OKQ8 STRÅTJÄRA TÖNNEBRO",window:"10:00–12:00",actual:"12:32",diff:"+32 min"}]},
+        ]
+      },
+      {
+        key:"0805", label:"8 maj", totalRoutes:50,
+        avvikelser:[
+          {id:"402_NORR18-0805",area:"NORR",type:"late",stops:[{name:"WH UMEÅ RÅDHUSESPLANADEN",window:"10:00–12:00",actual:"14:57",diff:"+2h 57min"}]},
+          {id:"402_OSD5-0805",area:"OSD",type:"late",stops:[{name:"OKQ8 KROKOM FÖLLINGEVÄGEN",window:"07:30–09:30",actual:"11:22",diff:"+1h 52min"}]},
+          {id:"402_OSD13-0805",area:"OSD",type:"late",stops:[{name:"HAMRA LIVS TÄNNDALEN",window:"12:30–14:30",actual:"14:35",diff:"+5 min"}]},
+          {id:"402_OSD16-0805",area:"OSD",type:"late",stops:[{name:"HANDLARN SKÅLAN",window:"09:00–12:00",actual:"12:26",diff:"+26 min"}]},
+          {id:"402_SDL15-0805",area:"SDL",type:"late",stops:[
+            {name:"PB GESÄLLV 1 SUNDSVALL",window:"10:00–12:00",actual:"13:23",diff:"+1h 23min"},
+            {name:"PB EPLANADEN 2 SUNDSVALL",window:"07:00–09:00",actual:"13:22",diff:"+4h 22min"},
+          ]},
+          {id:"402_SDL16-0805",area:"SDL",type:"late",stops:[{name:"CIRCLE K SUNDSVALL GÄRDE",window:"06:30–08:30",actual:"09:51",diff:"+1h 21min"}]},
+          {id:"402_SDL26-0805",area:"SDL",type:"late",stops:[{name:"OKQ8 HUDIKSVALL SÖDRA VÄGEN",window:"09:15–11:15",actual:"12:34",diff:"+1h 19min"}]},
+          {id:"402_SDL30-0805",area:"SDL",type:"late",stops:[
+            {name:"OKQ8 SOLLEFTEÅ STORGATAN",window:"05:30–07:30",actual:"09:19",diff:"+1h 49min"},
+            {name:"CIRCLE K HALLSTA SOLLEFTEÅ",window:"06:00–08:00",actual:"09:02",diff:"+1h 2min"},
+          ]},
+        ]
+      },
+      {
+        key:"0905", label:"9 maj", totalRoutes:20,
+        avvikelser:[
+          {id:"402_NORR16-0905",area:"NORR",type:"late",stops:[{name:"WILLYS UMEÅ KLOCKARBÄCKEN",window:"06:00–08:00",actual:"08:01",diff:"+1 min"}]},
+        ]
+      },
+    ]
+  },
+  { key:"martin", label:"Martin & Servera", hasData:false, days:[] },
+  { key:"coop_sdl", label:"COOP Sundsvall", hasData:false, days:[] },
+  { key:"coop_direkt", label:"COOP Direkt", hasData:false, days:[] },
+];
+
+let currentCustomer = "dagab";
+let currentDay = "0505";
+let typeFilter = "all";
+
+function getCustomer() { return customers.find(c => c.key === currentCustomer); }
+function getDay()      { const c = getCustomer(); return c.days.find(d => d.key === currentDay); }
+
+function setCustomer(key) {
+  const c = customers.find(x => x.key === key);
+  if (!c.hasData) return;
+  currentCustomer = key;
+  currentDay = c.days.length ? c.days[c.days.length - 1].key : null;
+  typeFilter = "all";
+  renderNav();
+  renderContent();
+}
+
+function setDay(k) {
+  currentDay = k;
+  typeFilter = "all";
+  renderDayTabs();
+  renderFilters();
+  renderDayContent();
+}
+
+function setType(t) {
+  typeFilter = t;
+  renderFilters();
+  renderTable();
+}
+
+function renderNav() {
+  document.getElementById("navCustomers").innerHTML = customers.map(c =>
+    `<button class="nav-btn${c.key===currentCustomer?" active":""}${!c.hasData?" no-data":""}"
+      onclick="setCustomer('${c.key}')">${c.label}</button>`
+  ).join("");
+}
+
+function renderContent() {
+  const c = getCustomer();
+  const app = document.getElementById("appContent");
+
+  if (!c.hasData || !c.days.length) {
+    app.innerHTML = `
+      <div class="no-data-screen">
+        <div class="icon">📭</div>
+        <div>Ingen data tillgänglig för <strong>${c.label}</strong> ännu.</div>
+      </div>`;
+    return;
+  }
+
+  app.innerHTML = `
+    <header>
+      <div>
+        <h1>${c.label}</h1>
+        <p>Avvikelserapport — tidspassning per dag</p>
+      </div>
+    </header>
+    <div class="main">
+      <div class="day-tabs" id="dayTabs"></div>
+      <div class="metrics" id="metrics"></div>
+      <div id="goodDay" class="good-day" style="display:none">✓ Inga avvikelser — alla leveranser i tid</div>
+      <div class="filters" id="filters"></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Rutt</th><th>Butik</th><th>Tidsfönster</th>
+            <th>Ankomst</th><th>Avvikelse</th><th>Status</th>
+          </tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>`;
+
+  renderDayTabs();
+  renderFilters();
+  renderDayContent();
+}
+
+function renderDayTabs() {
+  const c = getCustomer();
+  document.getElementById("dayTabs").innerHTML = c.days.map(d =>
+    `<button class="day-tab${d.key===currentDay?" active":""}" onclick="setDay('${d.key}')">${d.label}</button>`
+  ).join("");
+}
+
+function renderFilters() {
+  document.getElementById("filters").innerHTML = `
+    <span class="filter-label">Filter:</span>
+    <button class="flt${typeFilter==="all"?" active":""}" onclick="setType('all')">Alla</button>
+    <button class="flt late${typeFilter==="late"?" active":""}" onclick="setType('late')">Sena</button>
+    <button class="flt early${typeFilter==="early"?" active":""}" onclick="setType('early')">Tidiga</button>
+    <select class="area-select" id="areaSelect" onchange="renderTable()">
+      <option value="all">Alla områden</option>
+      <option value="SDL">SDL</option>
+      <option value="NORR">NORR</option>
+      <option value="OSD">OSD</option>
+    </select>`;
+}
+
+function renderDayContent() {
+  renderMetrics();
+  renderTable();
+}
+
+function renderMetrics() {
+  const day = getDay();
+  if (!day) return;
+  const lateStops  = day.avvikelser.filter(r=>r.type==="late").reduce((a,r)=>a+r.stops.length,0);
+  const earlyStops = day.avvikelser.filter(r=>r.type==="early").reduce((a,r)=>a+r.stops.length,0);
+  const okRoutes   = day.totalRoutes - day.avvikelser.length;
+  const pct        = Math.round((okRoutes / day.totalRoutes) * 100);
+
+  document.getElementById("metrics").innerHTML = `
+    <div class="metric"><div class="metric-label">Rutter</div><div class="metric-value">${day.totalRoutes}</div></div>
+    <div class="metric"><div class="metric-label">I tid</div><div class="metric-value green">${pct}%</div></div>
+    <div class="metric"><div class="metric-label">Avvikelser</div><div class="metric-value">${day.avvikelser.length}</div></div>
+    <div class="metric"><div class="metric-label">Sena stopp</div><div class="metric-value red">${lateStops}</div></div>
+    <div class="metric"><div class="metric-label">Tidiga stopp</div><div class="metric-value amber">${earlyStops}</div></div>`;
+
+  document.getElementById("goodDay").style.display = day.avvikelser.length === 0 ? "flex" : "none";
+}
+
+function renderTable() {
+  const day = getDay();
+  if (!day) return;
+  const area = document.getElementById("areaSelect") ? document.getElementById("areaSelect").value : "all";
+  let shown = day.avvikelser;
+  if (typeFilter !== "all") shown = shown.filter(r => r.type === typeFilter);
+  if (area !== "all") shown = shown.filter(r => r.area === area);
+
+  const tb = document.getElementById("tbody");
+  if (shown.length === 0) {
+    tb.innerHTML = `<tr class="empty-row"><td colspan="6">— Inga avvikelser matchar filtret —</td></tr>`;
+    return;
+  }
+
+  let html = "";
+  shown.forEach(r => {
+    const cls   = r.type==="late" ? "late-row" : "early-row";
+    const col   = r.type==="late" ? "red" : "amber";
+    const badge = `<span class="badge ${r.type}">${r.type==="late"?"SEN":"TIDIG"}</span>`;
+    r.stops.forEach((s, i) => {
+      html += `<tr class="${cls}">
+        <td>${i===0?`<span class="route-id">${r.id}</span><span class="area-tag">${r.area}</span>`:""}</td>
+        <td>${s.name}</td>
+        <td><span class="window-txt">${s.window}</span></td>
+        <td><span class="time-actual ${col}">${s.actual}</span></td>
+        <td><span class="diff-txt ${col}">${s.diff}</span></td>
+        <td>${i===0?badge:""}</td>
+      </tr>`;
+    });
+  });
+  tb.innerHTML = html;
+}
+
+renderNav();
+renderContent();
+</script>
+</body>
+</html>

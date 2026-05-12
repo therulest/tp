@@ -657,6 +657,7 @@ function setDay(k) {
 function setType(t) {
   typeFilter = t;
   renderFilters();
+  renderMetrics();
   renderTable();
 }
 
@@ -854,13 +855,13 @@ function renderDayTabs() {
 function renderFilters() {
   const c = getCustomer();
   const areaOptions = c.key === "dagab"
-    ? `<select class="area-select" id="areaSelect" onchange="renderTable()">
+    ? `<select class="area-select" id="areaSelect" onchange="renderTableAndMetrics()">
         <option value="all">Alla områden</option>
         <option value="SDL">SDL</option>
         <option value="NORR">NORR</option>
         <option value="OSD">OSD</option>
        </select>`
-    : `<select class="area-select" id="areaSelect" onchange="renderTable()">
+    : `<select class="area-select" id="areaSelect" onchange="renderTableAndMetrics()">
         <option value="all">Alla körningar</option>
        </select>`;
   document.getElementById("filters").innerHTML = `
@@ -876,22 +877,38 @@ function renderDayContent() {
   renderTable();
 }
 
+function renderTableAndMetrics() {
+  renderMetrics();
+  renderTable();
+}
+
 function renderMetrics() {
   const day = getDay();
   if (!day) return;
-  const lateStops  = day.avvikelser.filter(r=>r.type==="late").reduce((a,r)=>a+r.stops.length,0);
-  const earlyStops = day.avvikelser.filter(r=>r.type==="early").reduce((a,r)=>a+r.stops.length,0);
-  const okRoutes   = day.totalRoutes - day.avvikelser.length;
-  const pct        = Math.round((okRoutes / day.totalRoutes) * 100);
+
+  // Apply same filters as renderTable
+  const area = document.getElementById("areaSelect") ? document.getElementById("areaSelect").value : "all";
+  let filtered = day.avvikelser;
+  if (area !== "all") filtered = filtered.filter(r => r.area === area);
+
+  // Count stops in filtered avvikelser
+  const allStops   = filtered.reduce((a,r)=>a+r.stops.length, 0);
+  const lateStops  = filtered.filter(r=>r.type==="late").reduce((a,r)=>a+r.stops.length,0);
+  const earlyStops = filtered.filter(r=>r.type==="early").reduce((a,r)=>a+r.stops.length,0);
+
+  // For %, use totalRoutes as base when no area filter, otherwise filtered route count
+  const baseRoutes = area === "all" ? day.totalRoutes : filtered.length + (day.totalRoutes - day.avvikelser.length);
+  const okRoutes   = baseRoutes - filtered.length;
+  const pct        = baseRoutes > 0 ? Math.round((okRoutes / baseRoutes) * 100) : 100;
 
   document.getElementById("metrics").innerHTML = `
-    <div class="metric"><div class="metric-label">Rutter</div><div class="metric-value">${day.totalRoutes}</div></div>
+    <div class="metric"><div class="metric-label">Rutter</div><div class="metric-value">${area==="all"?day.totalRoutes:filtered.length+(day.totalRoutes-day.avvikelser.length)}</div></div>
     <div class="metric"><div class="metric-label">I tid</div><div class="metric-value green">${pct}%</div></div>
-    <div class="metric"><div class="metric-label">Avvikelser</div><div class="metric-value">${day.avvikelser.length}</div></div>
+    <div class="metric"><div class="metric-label">Avvikelser</div><div class="metric-value">${filtered.length}</div></div>
     <div class="metric"><div class="metric-label">Sena stopp</div><div class="metric-value red">${lateStops}</div></div>
     <div class="metric"><div class="metric-label">Tidiga stopp</div><div class="metric-value amber">${earlyStops}</div></div>`;
 
-  document.getElementById("goodDay").style.display = day.avvikelser.length === 0 ? "flex" : "none";
+  document.getElementById("goodDay").style.display = filtered.length === 0 ? "flex" : "none";
 }
 
 function renderTable() {

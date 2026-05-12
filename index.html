@@ -169,6 +169,29 @@
   .main { padding: 0 2rem 2rem; max-width: 1200px; }
 
   /* Period tabs */
+
+  .week-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 16px 2rem 0;
+    flex-wrap: wrap;
+  }
+
+  .week-tab {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-muted);
+    cursor: pointer;
+    letter-spacing: 0.2px;
+    text-transform: uppercase;
+  }
+  .week-tab:hover { border-color: var(--accent); color: var(--accent); }
+  .week-tab.active { background: var(--text); border-color: var(--text); color: #fff; }
   .day-tabs {
     display: flex;
     gap: 6px;
@@ -816,7 +839,68 @@ const coopData = [{"v":202619,"d":"2026-05-04","dl":"4 maj","dn":1,"dag":"Månda
 
 let currentCustomer = "dagab";
 let currentDay = "1205";
+// currentWeek will be set on first render
 let typeFilter = "all";
+
+// Week key from day key e.g. "0505" -> "v19", "1205" -> "v20"
+function dayKeyToWeek(key) {
+  // Parse DDMM from key like "0505", "1205"
+  const dd = parseInt(key.slice(0,2));
+  const mm = parseInt(key.slice(2,4));
+  const year = 2026;
+  const d = new Date(year, mm-1, dd);
+  // ISO week number
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay()||7));
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(),0,1));
+  const wn = Math.ceil((((tmp - yearStart) / 86400000) + 1)/7);
+  return 'v' + wn;
+}
+
+let currentWeek = null;
+
+function getWeeksForCustomer() {
+  const c = getCustomer();
+  const seen = new Set();
+  const weeks = [];
+  for (const d of c.days) {
+    const w = dayKeyToWeek(d.key);
+    if (!seen.has(w)) { seen.add(w); weeks.push(w); }
+  }
+  return weeks;
+}
+
+function getDaysForWeek(week) {
+  const c = getCustomer();
+  return c.days.filter(d => dayKeyToWeek(d.key) === week);
+}
+
+function setWeek(w) {
+  currentWeek = w;
+  // Pick last day in this week
+  const days = getDaysForWeek(w);
+  currentDay = days.length ? days[days.length - 1].key : null;
+  typeFilter = 'all';
+  renderWeekTabs();
+  renderDayTabs();
+  renderFilters();
+  renderDayContent();
+}
+
+function renderWeekTabs() {
+  const weeks = getWeeksForCustomer();
+  const el = document.getElementById('weekTabs');
+  if (!el) return;
+  if (weeks.length <= 1) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'flex';
+  el.innerHTML = weeks.map(w =>
+    `<button class="week-tab${w===currentWeek?' active':''}" onclick="setWeek('${w}')">${w.toUpperCase()}</button>`
+  ).join('');
+}
+
 
 function getCustomer() { return customers.find(c => c.key === currentCustomer); }
 function getDay()      { const c = getCustomer(); return c.days.find(d => d.key === currentDay); }
@@ -934,6 +1018,61 @@ function setCoopDatum(d)    { coopFilterDatum=d; renderCoopFilters(); renderCoop
 function setCoopDistrikt(d) { coopFilterDistrikt=d; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
 function setCoopTyp(t)      { coopFilterTyp=t; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
 
+// ---- Dagab/Martin filter state ----
+let dmFilterVecka = 'all';
+let dmFilterDag   = 'all';
+let dmFilterArea  = 'all';
+let dmFilterTyp   = 'all';
+
+function dayKeyToDateStr(key) {
+  // "0505" -> "5 maj", "1205" -> "12 maj"
+  const dd = parseInt(key.slice(0,2));
+  const mm = parseInt(key.slice(2,4));
+  const months = ['','jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+  return dd + ' ' + months[mm];
+}
+
+function getDmFiltered() {
+  const c = getCustomer();
+  // Collect all stops across all days, filtered
+  let result = [];
+  for (const d of c.days) {
+    const week = dayKeyToWeek(d.key);
+    if (dmFilterVecka !== 'all' && week !== dmFilterVecka) continue;
+    if (dmFilterDag !== 'all' && d.key !== dmFilterDag) continue;
+    for (const r of d.avvikelser) {
+      if (dmFilterArea !== 'all' && r.area !== dmFilterArea && r.id !== dmFilterArea) continue;
+      if (dmFilterTyp !== 'all' && r.type !== dmFilterTyp) continue;
+      result.push({ dayKey: d.key, dayLabel: d.label, route: r });
+    }
+  }
+  return result;
+}
+
+function getDmBaseData() {
+  // All routes across filtered days (for metrics denominator)
+  const c = getCustomer();
+  let totalRoutes = 0;
+  let allAvvik = [];
+  for (const d of c.days) {
+    const week = dayKeyToWeek(d.key);
+    if (dmFilterVecka !== 'all' && week !== dmFilterVecka) continue;
+    if (dmFilterDag !== 'all' && d.key !== dmFilterDag) continue;
+    totalRoutes += d.totalRoutes;
+    for (const r of d.avvikelser) {
+      if (dmFilterArea !== 'all' && r.area !== dmFilterArea && r.id !== dmFilterArea) continue;
+      allAvvik.push(r);
+    }
+  }
+  return { totalRoutes, allAvvik };
+}
+
+function setDmVecka(v) { dmFilterVecka=v; dmFilterDag='all'; renderDmFilters(); renderDmMetrics(); renderDmTable(); }
+function setDmDag(d)   { dmFilterDag=d; renderDmFilters(); renderDmMetrics(); renderDmTable(); }
+function setDmArea(a)  { dmFilterArea=a; renderDmFilters(); renderDmMetrics(); renderDmTable(); }
+function setDmTyp(t)   { dmFilterTyp=t; renderDmFilters(); renderDmMetrics(); renderDmTable(); }
+
+
 function renderCoopMetrics() {
   // Base = alla leveranser med samma vecka/datum/distrikt-filter (ignorera statusfilter)
   const base = coopData.filter(r => {
@@ -1007,22 +1146,25 @@ function renderContent() {
     return;
   }
 
+  // Get week span label
+  const veckor = [...new Set(c.days.map(d => dayKeyToWeek(d.key)))].sort();
+  const weekLabel = veckor.map(v => v.toUpperCase()).join(', ');
+
   app.innerHTML = `
     <header>
       <div>
         <h1>${c.label}</h1>
-        <p>Avvikelserapport — tidspassning per dag</p>
+        <p>Avvikelserapport — ${weekLabel}</p>
       </div>
     </header>
     <div class="main">
-      <div class="day-tabs" id="dayTabs"></div>
+      <div class="coop-filters" id="dmFilters"></div>
       <div class="metrics" id="metrics"></div>
       <div id="goodDay" class="good-day" style="display:none">✓ Inga avvikelser — alla leveranser i tid</div>
-      <div class="filters" id="filters"></div>
       <div class="table-wrap">
         <table>
           <thead><tr>
-            <th>Rutt</th><th>Butik</th><th>Tidsfönster</th>
+            <th>Dag</th><th>Rutt</th><th>Butik</th><th>Tidsfönster</th>
             <th>Ankomst</th><th>Avvikelse</th><th>Status</th>
           </tr></thead>
           <tbody id="tbody"></tbody>
@@ -1030,14 +1172,105 @@ function renderContent() {
       </div>
     </div>`;
 
-  renderDayTabs();
-  renderFilters();
-  renderDayContent();
+  renderDmFilters();
+  renderDmMetrics();
+  renderDmTable();
+}
+
+
+function renderDmFilters() {
+  const c = getCustomer();
+  const veckor = [...new Set(c.days.map(d => dayKeyToWeek(d.key)))].sort();
+  const dagMap = {};
+  c.days.forEach(d => { dagMap[d.key] = d.label; });
+
+  // Filter days by selected week
+  const daysForVecka = dmFilterVecka === 'all'
+    ? c.days
+    : c.days.filter(d => dayKeyToWeek(d.key) === dmFilterVecka);
+
+  // Area options
+  let areas;
+  if (c.key === 'dagab') {
+    areas = ['SDL','NORR','OSD'];
+  } else {
+    areas = [...new Set(c.days.flatMap(d => d.avvikelser.map(r => r.area)))].sort();
+  }
+
+  const el = document.getElementById('dmFilters');
+  if (!el) return;
+
+  el.innerHTML = `
+    <div class="coop-filter-row">
+      <span class="filter-label">Vecka</span>
+      ${veckor.map(v=>`<button class="flt${dmFilterVecka===v?' active':''}" onclick="setDmVecka('${v}')">${v.toUpperCase()}</button>`).join('')}
+      ${dmFilterVecka!=='all'?`<button class="flt active" style="opacity:.5" onclick="setDmVecka('all')">✕</button>`:''}
+    </div>
+    <div class="coop-filter-row">
+      <span class="filter-label">Dag</span>
+      ${daysForVecka.map(d=>`<button class="flt${dmFilterDag===d.key?' active':''}" onclick="setDmDag('${d.key}')">${d.label}</button>`).join('')}
+      ${dmFilterDag!=='all'?`<button class="flt active" style="opacity:.5" onclick="setDmDag('all')">✕</button>`:''}
+    </div>
+    <div class="coop-filter-row">
+      <span class="filter-label">Område</span>
+      ${areas.map(a=>`<button class="flt${dmFilterArea===a?' active':''}" onclick="setDmArea('${a}')">${a}</button>`).join('')}
+      ${dmFilterArea!=='all'?`<button class="flt active" style="opacity:.5" onclick="setDmArea('all')">✕</button>`:''}
+    </div>
+    <div class="coop-filter-row">
+      <span class="filter-label">Status</span>
+      <button class="flt${dmFilterTyp==='all'?' active':''}" onclick="setDmTyp('all')">Alla</button>
+      <button class="flt late${dmFilterTyp==='late'?' active':''}" onclick="setDmTyp('late')">Sena</button>
+      <button class="flt early${dmFilterTyp==='early'?' active':''}" onclick="setDmTyp('early')">Tidiga</button>
+    </div>`;
+}
+
+function renderDmMetrics() {
+  const { totalRoutes, allAvvik } = getDmBaseData();
+  const lateStops  = allAvvik.filter(r=>r.type==='late').reduce((a,r)=>a+r.stops.length,0);
+  const earlyStops = allAvvik.filter(r=>r.type==='early').reduce((a,r)=>a+r.stops.length,0);
+  const pct = totalRoutes > 0 ? Math.round(((totalRoutes - allAvvik.length) / totalRoutes) * 100) : 100;
+
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">Rutter</div><div class="metric-value">${totalRoutes}</div></div>
+    <div class="metric"><div class="metric-label">I tid</div><div class="metric-value green">${pct}%</div></div>
+    <div class="metric"><div class="metric-label">Avvikelser</div><div class="metric-value">${allAvvik.length}</div></div>
+    <div class="metric"><div class="metric-label">Sena stopp</div><div class="metric-value red">${lateStops}</div></div>
+    <div class="metric"><div class="metric-label">Tidiga stopp</div><div class="metric-value amber">${earlyStops}</div></div>`;
+
+  document.getElementById('goodDay').style.display = allAvvik.length === 0 ? 'flex' : 'none';
+}
+
+function renderDmTable() {
+  const rows = getDmFiltered();
+  const tb = document.getElementById('tbody');
+  if (rows.length === 0) {
+    tb.innerHTML = `<tr class="empty-row"><td colspan="7">— Inga avvikelser matchar filtret —</td></tr>`;
+    return;
+  }
+  let html = '';
+  rows.forEach(({ dayLabel, route: r }) => {
+    const cls   = r.type==='late' ? 'late-row' : 'early-row';
+    const col   = r.type==='late' ? 'red' : 'amber';
+    const badge = `<span class="badge ${r.type}">${r.type==='late'?'SEN':'TIDIG'}</span>`;
+    r.stops.forEach((s, i) => {
+      html += `<tr class="${cls}">
+        <td>${i===0?`<span class="window-txt">${dayLabel}</span>`:''}</td>
+        <td>${i===0?`<span class="route-id">${r.id}</span><span class="area-tag">${r.area}</span>`:''}</td>
+        <td>${s.name}</td>
+        <td><span class="window-txt">${s.window}</span></td>
+        <td><span class="time-actual ${col}">${s.actual}</span></td>
+        <td><span class="diff-txt ${col}">${s.diff}</span></td>
+        <td>${i===0?badge:''}</td>
+      </tr>`;
+    });
+  });
+  tb.innerHTML = html;
 }
 
 function renderDayTabs() {
   const c = getCustomer();
-  document.getElementById("dayTabs").innerHTML = c.days.map(d =>
+  const days = currentWeek ? getDaysForWeek(currentWeek) : c.days;
+  document.getElementById("dayTabs").innerHTML = days.map(d =>
     `<button class="day-tab${d.key===currentDay?" active":""}" onclick="setDay('${d.key}')">${d.label}</button>`
   ).join("");
 }
@@ -1173,7 +1406,9 @@ function setCustomer(key) {
   hideStats();
   currentCustomer = key;
   currentDay = c.days.length ? c.days[c.days.length - 1].key : null;
+  currentWeek = currentDay ? dayKeyToWeek(currentDay) : null;
   typeFilter = 'all';
+  dmFilterVecka = 'all'; dmFilterDag = 'all'; dmFilterArea = 'all'; dmFilterTyp = 'all';
   renderNav();
   renderContent();
 }
@@ -1350,6 +1585,7 @@ function renderStats() {
   }, 50);
 }
 
+currentWeek = currentDay ? dayKeyToWeek(currentDay) : null;
 renderNav();
 renderContent();
 </script>

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tidspassning</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -429,6 +430,57 @@
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
+
+  /* Stats page */
+  .stats-page { padding: 2rem; max-width: 1200px; }
+  .stats-header { margin-bottom: 2rem; }
+  .stats-header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.5px; }
+  .stats-header p  { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.4rem 1.6rem;
+    box-shadow: var(--shadow);
+  }
+
+  .chart-card h3 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+
+  .chart-card p {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 1.2rem;
+  }
+
+  .chart-wrap { position: relative; height: 220px; }
+
+  .stat-summary {
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .stat-summary-item { text-align: center; }
+  .stat-summary-val  { font-family: 'DM Mono', monospace; font-size: 1.3rem; font-weight: 500; }
+  .stat-summary-lbl  { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
+
+  @media (max-width: 900px) {
+    .stats-grid { grid-template-columns: 1fr; }
+  }
   @media (max-width: 700px) {
     .metrics { grid-template-columns: repeat(2, 1fr); }
     header, .main { padding: 1rem; }
@@ -441,6 +493,7 @@
 <nav>
   <div class="nav-brand">Tidspassning</div>
   <div class="nav-customers" id="navCustomers"></div>
+  <div style="margin-left:auto"><button class="nav-btn" id="statBtn" onclick="showStats()">Statistik</button></div>
 </nav>
 
 <div id="appContent"></div>
@@ -736,16 +789,6 @@ let typeFilter = "all";
 
 function getCustomer() { return customers.find(c => c.key === currentCustomer); }
 function getDay()      { const c = getCustomer(); return c.days.find(d => d.key === currentDay); }
-
-function setCustomer(key) {
-  const c = customers.find(x => x.key === key);
-  if (!c.hasData) return;
-  currentCustomer = key;
-  currentDay = c.days.length ? c.days[c.days.length - 1].key : null;
-  typeFilter = "all";
-  renderNav();
-  renderContent();
-}
 
 function setDay(k) {
   currentDay = k;
@@ -1075,6 +1118,205 @@ function renderTable() {
     });
   });
   tb.innerHTML = html;
+}
+
+
+let statsVisible = false;
+let chartInstances = {};
+
+function showStats() {
+  statsVisible = true;
+  document.getElementById('statBtn').classList.add('active');
+  document.querySelectorAll('.nav-btn:not(#statBtn)').forEach(b => b.classList.remove('active'));
+  renderStats();
+}
+
+function hideStats() {
+  statsVisible = false;
+  document.getElementById('statBtn').classList.remove('active');
+}
+
+function setCustomer(key) {
+  const c = customers.find(x => x.key === key);
+  if (!c.hasData) return;
+  hideStats();
+  currentCustomer = key;
+  currentDay = c.days.length ? c.days[c.days.length - 1].key : null;
+  typeFilter = 'all';
+  renderNav();
+  renderContent();
+}
+
+function calcDagabStats(customer) {
+  return customer.days.map(d => {
+    const pct = Math.round(((d.totalRoutes - d.avvikelser.length) / d.totalRoutes) * 100);
+    return { label: d.label, pct, total: d.totalRoutes, avvik: d.avvikelser.length };
+  });
+}
+
+function calcMartinStats(customer) {
+  return customer.days.map(d => {
+    const pct = Math.round(((d.totalRoutes - d.avvikelser.length) / d.totalRoutes) * 100);
+    return { label: d.label, pct, total: d.totalRoutes, avvik: d.avvikelser.length };
+  });
+}
+
+function calcCoopStats() {
+  const datum = [...new Set(coopData.map(r => r.d))].sort();
+  return datum.map(d => {
+    const rows = coopData.filter(r => r.d === d);
+    const ok   = rows.filter(r => r.typ === 'ok').length;
+    const pct  = Math.round((ok / rows.length) * 100);
+    const dl   = rows[0].dl;
+    return { label: dl, pct, total: rows.length, avvik: rows.length - ok };
+  });
+}
+
+function destroyChart(id) {
+  if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
+}
+
+function buildChart(id, labels, data, color) {
+  destroyChart(id);
+  const ctx = document.getElementById(id).getContext('2d');
+  chartInstances[id] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '% i tid',
+        data,
+        borderColor: color,
+        backgroundColor: color + '18',
+        borderWidth: 2.5,
+        pointBackgroundColor: color,
+        pointRadius: 5,
+        pointHoverRadius: 7,
+        tension: 0.3,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.parsed.y}% i tid`
+          }
+        }
+      },
+      scales: {
+        y: {
+          min: 0, max: 100,
+          ticks: {
+            callback: v => v + '%',
+            font: { family: 'DM Mono', size: 11 },
+            color: '#7a8099',
+          },
+          grid: { color: '#e2e4ea' },
+        },
+        x: {
+          ticks: { font: { family: 'DM Sans', size: 11 }, color: '#7a8099' },
+          grid: { display: false },
+        }
+      }
+    }
+  });
+}
+
+function renderStats() {
+  const app = document.getElementById('appContent');
+
+  // Build stats for each customer
+  const dagab  = customers.find(c => c.key === 'dagab');
+  const martin = customers.find(c => c.key === 'martin');
+
+  const dagabStat  = calcDagabStats(dagab);
+  const martinStat = calcMartinStats(martin);
+  const coopStat   = calcCoopStats();
+
+  function avgPct(stats) { return Math.round(stats.reduce((a,s)=>a+s.pct,0)/stats.length); }
+  function minPct(stats) { return Math.min(...stats.map(s=>s.pct)); }
+
+  app.innerHTML = `
+    <div class="stats-page">
+      <div class="stats-header">
+        <h1>Statistik</h1>
+        <p>% leveranser i tid per dag — löpande översikt</p>
+      </div>
+      <div class="stats-grid">
+
+        <div class="chart-card">
+          <h3>Dagab</h3>
+          <p>Daglig tidspassning — rutter i tid</p>
+          <div class="chart-wrap"><canvas id="chartDagab"></canvas></div>
+          <div class="stat-summary">
+            <div class="stat-summary-item">
+              <div class="stat-summary-val" style="color:var(--green)">${avgPct(dagabStat)}%</div>
+              <div class="stat-summary-lbl">Snitt i tid</div>
+            </div>
+            <div class="stat-summary-item">
+              <div class="stat-summary-val" style="color:var(--red)">${minPct(dagabStat)}%</div>
+              <div class="stat-summary-lbl">Lägsta dag</div>
+            </div>
+            <div class="stat-summary-item">
+              <div class="stat-summary-val">${dagabStat.length}</div>
+              <div class="stat-summary-lbl">Dagar</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <h3>Martin & Servera</h3>
+          <p>Daglig tidspassning — körningar i tid</p>
+          <div class="chart-wrap"><canvas id="chartMartin"></canvas></div>
+          <div class="stat-summary">
+            <div class="stat-summary-item">
+              <div class="stat-summary-val" style="color:var(--green)">${avgPct(martinStat)}%</div>
+              <div class="stat-summary-lbl">Snitt i tid</div>
+            </div>
+            <div class="stat-summary-item">
+              <div class="stat-summary-val" style="color:var(--red)">${minPct(martinStat)}%</div>
+              <div class="stat-summary-lbl">Lägsta dag</div>
+            </div>
+            <div class="stat-summary-item">
+              <div class="stat-summary-val">${martinStat.length}</div>
+              <div class="stat-summary-lbl">Dagar</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <h3>COOP</h3>
+          <p>Daglig tidspassning — leveranser i tid (±60 min)</p>
+          <div class="chart-wrap"><canvas id="chartCoop"></canvas></div>
+          <div class="stat-summary">
+            <div class="stat-summary-item">
+              <div class="stat-summary-val" style="color:var(--green)">${avgPct(coopStat)}%</div>
+              <div class="stat-summary-lbl">Snitt i tid</div>
+            </div>
+            <div class="stat-summary-item">
+              <div class="stat-summary-val" style="color:var(--red)">${minPct(coopStat)}%</div>
+              <div class="stat-summary-lbl">Lägsta dag</div>
+            </div>
+            <div class="stat-summary-item">
+              <div class="stat-summary-val">${coopStat.length}</div>
+              <div class="stat-summary-lbl">Dagar</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>`;
+
+  // Draw charts after DOM is ready
+  setTimeout(() => {
+    buildChart('chartDagab',  dagabStat.map(s=>s.label),  dagabStat.map(s=>s.pct),  '#2563eb');
+    buildChart('chartMartin', martinStat.map(s=>s.label), martinStat.map(s=>s.pct), '#7c3aed');
+    buildChart('chartCoop',   coopStat.map(s=>s.label),   coopStat.map(s=>s.pct),   '#059669');
+  }, 50);
 }
 
 renderNav();

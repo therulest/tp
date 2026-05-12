@@ -734,7 +734,7 @@ const customers = [
         ]
       },
       {
-        key:"1205", label:"12 maj", totalRoutes:25,
+        key:"1205", label:"12 maj", totalRoutes:25, totalStops:234,
         avvikelser:[
           {id:"02H2",area:"SDL",type:"late",stops:[
             {name:"5-ZMAK DELI & RESTAURANG",window:"07:00–10:00",actual:"10:30",diff:"+30 min"},
@@ -1050,21 +1050,24 @@ function getDmFiltered() {
 }
 
 function getDmBaseData() {
-  // All routes across filtered days (for metrics denominator)
   const c = getCustomer();
   let totalRoutes = 0;
+  let totalStops = 0;  // for Martin: total deliveries (stops) across filtered days
   let allAvvik = [];
   for (const d of c.days) {
     const week = dayKeyToWeek(d.key);
     if (dmFilterVecka !== 'all' && week !== dmFilterVecka) continue;
     if (dmFilterDag !== 'all' && d.key !== dmFilterDag) continue;
     totalRoutes += d.totalRoutes;
+    // Count total stops in this day's avvikelser + estimate ok stops
+    // totalStops: use d.totalStops if available, else count avvik stops as proxy
+    totalStops += d.totalStops || d.avvikelser.reduce((a,r)=>a+r.stops.length,0);
     for (const r of d.avvikelser) {
       if (dmFilterArea !== 'all' && r.area !== dmFilterArea && r.id !== dmFilterArea) continue;
       allAvvik.push(r);
     }
   }
-  return { totalRoutes, allAvvik };
+  return { totalRoutes, totalStops, allAvvik };
 }
 
 function setDmVecka(v) { dmFilterVecka=v; dmFilterDag='all'; renderDmFilters(); renderDmMetrics(); renderDmTable(); }
@@ -1074,7 +1077,7 @@ function setDmTyp(t)   { dmFilterTyp=t; renderDmFilters(); renderDmMetrics(); re
 
 
 function renderCoopMetrics() {
-  // Base = alla leveranser med samma vecka/datum/distrikt-filter (ignorera statusfilter)
+  // Base = alla leveranser med vecka/datum/distrikt-filter (ignorera statusfilter för totalen)
   const base = coopData.filter(r => {
     if (coopFilterVecka !== 'all' && String(r.v) !== coopFilterVecka) return false;
     if (coopFilterDatum !== 'all' && r.d !== coopFilterDatum) return false;
@@ -1085,10 +1088,20 @@ function renderCoopMetrics() {
   const total  = base.length;
   const sena   = base.filter(r=>r.typ==='late').length;
   const tidiga = base.filter(r=>r.typ==='early').length;
-  const ok     = base.filter(r=>r.typ==='ok').length;
-  const pct    = total > 0 ? Math.round((ok/total)*100) : 100;
-
   const appMiss = base.filter(r=>!r.app).length;
+
+  // Procent styrs av aktiv statusfilter:
+  // "all" / "avvik" -> alla avvikande räknas ner
+  // "late"   -> endast sena räknas ner
+  // "early"  -> endast tidiga räknas ner
+  // "noapp"  -> baseras på ok (oförändrat)
+  let avvikCount;
+  if (coopFilterTyp === 'late')  avvikCount = sena;
+  else if (coopFilterTyp === 'early') avvikCount = tidiga;
+  else if (coopFilterTyp === 'noapp') avvikCount = appMiss;
+  else avvikCount = sena + tidiga; // 'all' och 'avvik'
+
+  const pct = total > 0 ? Math.round(((total - avvikCount) / total) * 100) : 100;
 
   document.getElementById('metrics').innerHTML = `
     <div class="metric"><div class="metric-label">Leveranser</div><div class="metric-value">${total}</div></div>
@@ -1225,19 +1238,56 @@ function renderDmFilters() {
 }
 
 function renderDmMetrics() {
-  const { totalRoutes, allAvvik } = getDmBaseData();
+  const c = getCustomer();
+  const { totalRoutes, totalStops, allAvvik } = getDmBaseData();
   const lateStops  = allAvvik.filter(r=>r.type==='late').reduce((a,r)=>a+r.stops.length,0);
   const earlyStops = allAvvik.filter(r=>r.type==='early').reduce((a,r)=>a+r.stops.length,0);
-  const pct = totalRoutes > 0 ? Math.round(((totalRoutes - allAvvik.length) / totalRoutes) * 100) : 100;
+  const avvikStops = lateStops + earlyStops;
+
+  // For Martin: percent based on deliveries (stops), filtered by active type filter
+  // For Dagab: percent based on routes (unchanged)
+  let pct, totalLabel, totalVal, avvikVal;
+  if (c.key === 'martin') {
+    // Total stops across filtered days/area (all avvikande + ok stops)
+    // We don't store ok-stops count, so use totalRoutes as proxy for routes
+    // but count avvik stops from filtered avvik (respecting type filter)
+    const filteredAvvikStops = dmFilterTyp === 'late' ? lateStops
+                             : dmFilterTyp === 'early' ? earlyStops
+                             : avvikStops;
+    // Total deliveries: we need to sum all stops (avvikande). 
+    // As a denominator use totalRoutes * avg or store total stops.
+    // Best approach: count all stops in filtered routes (avvik stops are known, ok stops unknown)
+    // Use totalRoutes as denominator for routes, but label it as leveranser from the data
+    // Actually we have totalRoutes per day — for Martin this equals total deliveries approx
+    // Use totalRoutes as total leveranser
+    const totalLev = totalStops > 0 ? totalStops : totalRoutes; // prefer totalStops if available
+    pct = totalLev > 0 ? Math.round(((totalLev - filteredAvvikStops) / totalLev) * 100) : 100;
+    totalLabel = 'Leveranser';
+    totalVal = totalLev;
+    avvikVal = filteredAvvikStops;
+  } else {
+    // Dagab: route-based
+    const filteredAvvik = dmFilterTyp === 'late' ? allAvvik.filter(r=>r.type==='late')
+                        : dmFilterTyp === 'early' ? allAvvik.filter(r=>r.type==='early')
+                        : allAvvik;
+    pct = totalRoutes > 0 ? Math.round(((totalRoutes - filteredAvvik.length) / totalRoutes) * 100) : 100;
+    totalLabel = 'Rutter';
+    totalVal = totalRoutes;
+    avvikVal = filteredAvvik.length;
+  }
+
+  const avvikForGoodDay = dmFilterTyp === 'late' ? lateStops
+                        : dmFilterTyp === 'early' ? earlyStops
+                        : avvikStops;
 
   document.getElementById('metrics').innerHTML = `
-    <div class="metric"><div class="metric-label">Rutter</div><div class="metric-value">${totalRoutes}</div></div>
+    <div class="metric"><div class="metric-label">${totalLabel}</div><div class="metric-value">${totalVal}</div></div>
     <div class="metric"><div class="metric-label">I tid</div><div class="metric-value green">${pct}%</div></div>
-    <div class="metric"><div class="metric-label">Avvikelser</div><div class="metric-value">${allAvvik.length}</div></div>
+    <div class="metric"><div class="metric-label">Avvikelser</div><div class="metric-value">${avvikVal}</div></div>
     <div class="metric"><div class="metric-label">Sena stopp</div><div class="metric-value red">${lateStops}</div></div>
     <div class="metric"><div class="metric-label">Tidiga stopp</div><div class="metric-value amber">${earlyStops}</div></div>`;
 
-  document.getElementById('goodDay').style.display = allAvvik.length === 0 ? 'flex' : 'none';
+  document.getElementById('goodDay').style.display = avvikForGoodDay === 0 ? 'flex' : 'none';
 }
 
 function renderDmTable() {

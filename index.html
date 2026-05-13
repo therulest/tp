@@ -501,13 +501,101 @@
   .stat-summary-val  { font-family: 'DM Mono', monospace; font-size: 1.3rem; font-weight: 500; }
   .stat-summary-lbl  { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
 
+  /* ── Tablet ──────────────────────────────────────────────────── */
   @media (max-width: 900px) {
-    .stats-grid { grid-template-columns: 1fr; }
+    .stats-grid           { grid-template-columns: 1fr; }
+    .stats-summary-row    { flex-wrap: wrap; }
+    .stats-summary-card   { min-width: calc(50% - 6px); }
+    .metrics              { flex-wrap: wrap; }
+    .metric               { min-width: 100px; flex: 1 1 100px; }
   }
-  @media (max-width: 700px) {
-    .metrics { grid-template-columns: repeat(2, 1fr); }
-    header, .main { padding: 1rem; }
-    nav { padding: 0 1rem; }
+
+  /* ── Mobile ──────────────────────────────────────────────────── */
+  @media (max-width: 640px) {
+
+    /* Nav */
+    nav { padding: 0 12px; gap: 4px; }
+    .nav-brand { font-size: 13px; margin-right: 8px; }
+    .nav-btn   { font-size: 12px; padding: 5px 10px; }
+
+    /* Dashboard */
+    .main        { padding: 14px 12px; }
+    header       { padding: 14px 12px 0; }
+    header h1    { font-size: 20px; }
+    header p     { font-size: 12px; }
+
+    /* Customer tabs */
+    .day-tabs    { padding: 0 12px; gap: 4px; overflow-x: auto; flex-wrap: nowrap; scrollbar-width: none; }
+    .day-tabs::-webkit-scrollbar { display: none; }
+    .day-tab     { font-size: 12px; padding: 5px 11px; white-space: nowrap; }
+    .week-tabs   { padding: 10px 12px 0; gap: 4px; }
+    .week-tab    { font-size: 11px; padding: 4px 10px; }
+
+    /* DM filters */
+    .coop-filters, .filters-card { padding: 10px 12px; gap: 7px; }
+    .coop-filter-row, .filter-row { gap: 4px; flex-wrap: wrap; }
+    .filter-label { font-size: 10px; min-width: 44px; }
+    .flt          { font-size: 11px; padding: 3px 8px; }
+
+    /* Metrics */
+    .metrics      { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px; }
+    .metric       { padding: 10px 12px; min-width: unset; }
+    .metric-label { font-size: 10px; }
+    .metric-val   { font-size: 20px; }
+    .good-day     { font-size: 12px; padding: 10px 14px; margin-bottom: 14px; }
+
+    /* Table — horizontal scroll */
+    .table-wrap           { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 8px; }
+    table                 { min-width: 580px; }
+    th                    { font-size: 10px; padding: 8px 10px; }
+    td                    { font-size: 12px; padding: 7px 10px; }
+    .route-id             { font-size: 11px; }
+    .area-tag             { font-size: 9px; padding: 1px 5px; }
+    .window-txt           { font-size: 11px; }
+    .diff-txt, .time-actual { font-size: 11px; }
+    .badge                { font-size: 9px; padding: 2px 6px; }
+    .day-lbl              { font-size: 11px; }
+
+    /* Upload */
+    .upload-page  { padding: 20px 12px; }
+    .upload-card  { padding: 18px 14px; }
+    .drop-zone    { padding: 24px 12px; font-size: 13px; }
+    .upload-btn   { font-size: 13px; }
+
+    /* Stats */
+    .stats-page   { padding: 16px 12px; }
+    .stats-header h1 { font-size: 22px; }
+    .stats-filters   { padding: 10px 12px; }
+
+    .stats-summary-row   { flex-direction: column; gap: 8px; }
+    .stats-summary-card  { min-width: unset; padding: 14px 16px; }
+    .ssc-metrics         { gap: 10px; flex-wrap: wrap; }
+    .ssc-val             { font-size: 18px; }
+    .ssc-lbl             { font-size: 9px; }
+
+    .chart-card          { padding: 14px; }
+    .chart-card h3       { font-size: 14px; }
+    .chart-wrap          { height: 160px; }
+    .chart-wrap.tall     { height: 200px; }
+
+    .stats-table-card    { padding: 14px; }
+    .stats-table-card h3 { font-size: 14px; }
+    .stats-table-card .table-wrap { overflow-x: auto; }
+    .stats-table-card table { min-width: 480px; }
+
+    /* Login */
+    .login-card { padding: 24px 18px; margin: 12px; }
+    .login-logo { font-size: 18px; }
+  }
+
+  /* ── Very small (≤380px) ─────────────────────────────────────── */
+  @media (max-width: 380px) {
+    nav          { padding: 0 8px; }
+    .nav-brand   { font-size: 12px; margin-right: 4px; }
+    .nav-btn     { font-size: 11px; padding: 4px 8px; }
+    .metrics     { grid-template-columns: repeat(2,1fr); gap: 6px; }
+    .metric-val  { font-size: 18px; }
+    header h1    { font-size: 18px; }
   }
 
   .stats-page { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
@@ -552,6 +640,94 @@
   .metric-val-sm.green { color: var(--green); }
   .metric-val-sm.red   { color: var(--red); }
   .metric-val-sm.amber { color: var(--amber); }
+
+
+  /* ── Mobile & responsive ─────────────────────────────────────────── */
+
+  /* Topbar */
+  @media (max-width: 640px) {
+    .topbar {
+      padding: 0 14px;
+      height: 48px;
+      flex-wrap: nowrap;
+      gap: 8px;
+    }
+    .topbar-logo { font-size: 14px; }
+    .user-email  { display: none; }
+    .nav-btn span { display: none; } /* hide text, keep icon */
+    .nav-btn { padding: 5px 8px; }
+  }
+
+  /* Dashboard */
+  @media (max-width: 640px) {
+    .dashboard { padding: 16px 12px; }
+    .cust-tabs { gap: 6px; margin-bottom: 18px; }
+    .cust-tab  { padding: 6px 12px; font-size: 12px; }
+    .dash-header h1 { font-size: 22px; }
+
+    .filters-card { padding: 12px 14px; gap: 8px; }
+    .filter-row   { gap: 5px; flex-wrap: wrap; }
+    .filter-label { min-width: 46px; font-size: 10px; }
+    .flt          { padding: 3px 9px; font-size: 11px; }
+
+    .metrics { gap: 8px; }
+    .metric  { padding: 12px 14px; min-width: 80px; }
+    .metric-label { font-size: 10px; }
+    .metric-val   { font-size: 22px; }
+
+    .table-wrap   { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table         { min-width: 560px; }
+    th, td        { padding: 8px 10px; }
+    th            { font-size: 10px; }
+    td            { font-size: 12px; }
+    .route-id     { font-size: 11px; }
+    .area-tag     { font-size: 9px; padding: 1px 5px; }
+    .window-txt   { font-size: 11px; }
+    .diff-txt     { font-size: 11px; }
+    .time-actual  { font-size: 12px; }
+    .badge        { font-size: 9px; padding: 2px 6px; }
+  }
+
+  /* Upload page */
+  @media (max-width: 640px) {
+    .upload-page  { padding: 24px 14px; }
+    .upload-card  { padding: 20px 16px; }
+    .drop-zone    { padding: 24px 14px; }
+  }
+
+  /* Stats page */
+  @media (max-width: 640px) {
+    .stats-page   { padding: 16px 12px; }
+    .stats-header h1 { font-size: 22px; }
+    .stats-filters { padding: 12px 14px; }
+
+    .stats-summary-row { flex-direction: column; }
+    .stats-summary-card { min-width: unset; }
+    .ssc-metrics  { gap: 12px; }
+    .ssc-val      { font-size: 18px; }
+
+    .chart-wrap      { height: 160px; }
+    .chart-wrap.tall { height: 220px; }
+
+    .stats-table-card { padding: 14px; overflow-x: auto; }
+    .stats-table-card table { min-width: 500px; }
+  }
+
+  /* Login */
+  @media (max-width: 480px) {
+    .login-card { padding: 28px 20px; }
+  }
+
+  /* Metrics: 2-column on mobile */
+  @media (max-width: 520px) {
+    .metrics { display: grid; grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* COOP filters */
+  @media (max-width: 640px) {
+    .coop-filters { padding: 12px 14px; gap: 8px; }
+    .coop-filter-row { gap: 5px; }
+  }
 
 </style>
 </head>

@@ -1550,74 +1550,97 @@ function setCustomer(key) {
   renderContent();
 }
 
+// ── Stats filter state ─────────────────────────────────────────────────────
+let statFilterVecka  = 'all';
+let statFilterArea   = 'all';
+let statFilterTyp    = 'all';  // 'all' | 'late' | 'early'
+let statFilterKund   = 'all';  // 'all' | 'dagab' | 'martin' | 'coop'
+
+function setStatVecka(v)  { statFilterVecka=v;  renderStats(); }
+function setStatArea(a)   { statFilterArea=a;   renderStats(); }
+function setStatTyp(t)    { statFilterTyp=t;    renderStats(); }
+function setStatKund(k)   { statFilterKund=k;   renderStats(); }
+
+// ── Stats calc helpers ──────────────────────────────────────────────────────
 function calcDagabStats(customer) {
   return customer.days.map(d => {
-    const pct = Math.round(((d.totalRoutes - d.avvikelser.length) / d.totalRoutes) * 100);
-    return { label: d.label, pct, total: d.totalRoutes, avvik: d.avvikelser.length };
-  });
+    const week = dayKeyToWeek(d.key);
+    if (statFilterVecka !== 'all' && week !== statFilterVecka) return null;
+    let avvik = d.avvikelser;
+    if (statFilterArea !== 'all') avvik = avvik.filter(r => r.area === statFilterArea);
+    if (statFilterTyp  !== 'all') avvik = avvik.filter(r => r.type === statFilterTyp);
+    const pct = d.totalRoutes > 0
+      ? Math.round(((d.totalRoutes - avvik.length) / d.totalRoutes) * 100)
+      : 100;
+    return { label: d.label, pct, total: d.totalRoutes, avvik: avvik.length,
+             late: avvik.filter(r=>r.type==='late').length,
+             early: avvik.filter(r=>r.type==='early').length, week };
+  }).filter(Boolean);
 }
 
 function calcMartinStats(customer) {
   return customer.days.map(d => {
-    const pct = Math.round(((d.totalRoutes - d.avvikelser.length) / d.totalRoutes) * 100);
-    return { label: d.label, pct, total: d.totalRoutes, avvik: d.avvikelser.length };
-  });
+    const week = dayKeyToWeek(d.key);
+    if (statFilterVecka !== 'all' && week !== statFilterVecka) return null;
+    let avvik = d.avvikelser;
+    if (statFilterArea !== 'all') avvik = avvik.filter(r => r.area === statFilterArea);
+    if (statFilterTyp  !== 'all') avvik = avvik.filter(r => r.type === statFilterTyp);
+    const avvikStops = avvik.reduce((a,r)=>a+r.stops.length, 0);
+    const denom = d.totalStops || d.totalRoutes;
+    const pct = denom > 0 ? Math.round(((denom - avvikStops) / denom) * 100) : 100;
+    return { label: d.label, pct, total: denom, avvik: avvikStops,
+             late: avvik.filter(r=>r.type==='late').reduce((a,r)=>a+r.stops.length,0),
+             early: avvik.filter(r=>r.type==='early').reduce((a,r)=>a+r.stops.length,0), week };
+  }).filter(Boolean);
 }
 
 function calcCoopStats() {
-  const datum = [...new Set(coopData.map(r => r.d))].sort();
-  return datum.map(d => {
-    const rows = coopData.filter(r => r.d === d);
-    const ok   = rows.filter(r => r.typ === 'ok').length;
-    const pct  = Math.round((ok / rows.length) * 100);
-    const dl   = rows[0].dl;
-    return { label: dl, pct, total: rows.length, avvik: rows.length - ok };
-  });
+  const allDatum = [...new Set(coopData.map(r => r.d))].sort();
+  return allDatum.map(d => {
+    const week = coopData.find(r=>r.d===d)?.v;
+    if (statFilterVecka !== 'all' && week !== statFilterVecka) return null;
+    let rows = coopData.filter(r => r.d === d);
+    if (statFilterArea !== 'all') rows = rows.filter(r => r.t === statFilterArea);
+    if (statFilterTyp === 'late')  rows = rows.filter(r => r.typ !== 'early');
+    if (statFilterTyp === 'early') rows = rows.filter(r => r.typ !== 'late');
+    const ok  = rows.filter(r => r.typ === 'ok').length;
+    const pct = rows.length > 0 ? Math.round((ok / rows.length) * 100) : 100;
+    const dl  = coopData.find(r=>r.d===d)?.dl || d;
+    return { label: dl, pct, total: rows.length, avvik: rows.length - ok,
+             late: rows.filter(r=>r.typ==='late').length,
+             early: rows.filter(r=>r.typ==='early').length, week };
+  }).filter(Boolean);
 }
 
 function destroyChart(id) {
   if (chartInstances[id]) { chartInstances[id].destroy(); delete chartInstances[id]; }
 }
 
-function buildChart(id, labels, data, color) {
+function buildCombinedChart(id, datasets) {
   destroyChart(id);
-  const ctx = document.getElementById(id).getContext('2d');
+  const ctx = document.getElementById(id)?.getContext('2d');
+  if (!ctx) return;
   chartInstances[id] = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: '% i tid',
-        data,
-        borderColor: color,
-        backgroundColor: color + '18',
-        borderWidth: 2.5,
-        pointBackgroundColor: color,
-        pointRadius: 5,
-        pointHoverRadius: 7,
-        tension: 0.3,
-        fill: true,
-      }]
-    },
+    data: { datasets },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          position: 'top',
+          labels: { font: { family: 'DM Sans', size: 12 }, usePointStyle: true, pointStyleWidth: 10 }
+        },
         tooltip: {
-          callbacks: {
-            label: ctx => ` ${ctx.parsed.y}% i tid`
-          }
+          callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y}% i tid` }
         }
       },
       scales: {
         y: {
           min: 0, max: 100,
-          ticks: {
-            callback: v => v + '%',
-            font: { family: 'DM Mono', size: 11 },
-            color: '#7a8099',
-          },
+          ticks: { callback: v => v+'%', font: { family: 'DM Mono', size: 11 }, color: '#7a8099' },
           grid: { color: '#e2e4ea' },
         },
         x: {
@@ -1629,98 +1652,202 @@ function buildChart(id, labels, data, color) {
   });
 }
 
+function buildChart(id, labels, data, color) {
+  destroyChart(id);
+  const ctx = document.getElementById(id)?.getContext('2d');
+  if (!ctx) return;
+  chartInstances[id] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: '% i tid',
+        data,
+        backgroundColor: data.map(v => v >= 90 ? color+'cc' : v >= 75 ? '#f59e0b99' : '#ef444499'),
+        borderRadius: 5,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y}% i tid` } }
+      },
+      scales: {
+        y: {
+          min: 0, max: 100,
+          ticks: { callback: v => v+'%', font: { family: 'DM Mono', size: 11 }, color: '#7a8099' },
+          grid: { color: '#e2e4ea' },
+        },
+        x: {
+          ticks: { font: { family: 'DM Sans', size: 11 }, color: '#7a8099' },
+          grid: { display: false },
+        }
+      }
+    }
+  });
+}
+
+// ── renderStats ─────────────────────────────────────────────────────────────
 function renderStats() {
   const app = document.getElementById('appContent');
 
-  // Build stats for each customer
   const dagab  = customers.find(c => c.key === 'dagab');
   const martin = customers.find(c => c.key === 'martin');
 
-  const dagabStat  = calcDagabStats(dagab);
-  const martinStat = calcMartinStats(martin);
-  const coopStat   = calcCoopStats();
+  const dagabStat  = statFilterKund !== 'martin' && statFilterKund !== 'coop'  ? calcDagabStats(dagab)   : [];
+  const martinStat = statFilterKund !== 'dagab'  && statFilterKund !== 'coop'  ? calcMartinStats(martin) : [];
+  const coopStat   = statFilterKund !== 'dagab'  && statFilterKund !== 'martin'? calcCoopStats()         : [];
 
-  function avgPct(stats) { return Math.round(stats.reduce((a,s)=>a+s.pct,0)/stats.length); }
-  function minPct(stats) { return Math.min(...stats.map(s=>s.pct)); }
+  // All weeks across all data
+  const allWeeks = [...new Set([
+    ...dagab.days.map(d => dayKeyToWeek(d.key)),
+    ...martin.days.map(d => dayKeyToWeek(d.key)),
+    ...coopData.map(r => r.v)
+  ])].sort();
+
+  // Areas for each customer
+  const dagabAreas  = ['SDL','NORR','OSD'];
+  const martinAreas = [...new Set(martin.days.flatMap(d => d.avvikelser.map(r => r.area)))].filter(Boolean).sort();
+  const coopAreas   = [...new Set(coopData.map(r => r.t))].filter(Boolean).sort();
+  const showAreas   = statFilterKund === 'dagab'  ? dagabAreas
+                    : statFilterKund === 'martin' ? martinAreas
+                    : statFilterKund === 'coop'   ? coopAreas
+                    : [];
+
+  // Summary stats
+  function avg(arr) { return arr.length ? Math.round(arr.reduce((a,s)=>a+s.pct,0)/arr.length) : '-'; }
+  function mn(arr)  { return arr.length ? Math.min(...arr.map(s=>s.pct)) : '-'; }
+  function totAvvik(arr) { return arr.reduce((a,s)=>a+s.avvik,0); }
+  function totLate(arr)  { return arr.reduce((a,s)=>a+s.late,0); }
+  function totEarly(arr) { return arr.reduce((a,s)=>a+s.early,0); }
 
   app.innerHTML = `
     <div class="stats-page">
       <div class="stats-header">
         <h1>Statistik</h1>
-        <p>% leveranser i tid per dag — löpande översikt</p>
+        <p>Tidspassning över tid — filtrerbar översikt</p>
       </div>
-      <div class="stats-grid">
 
+      <!-- Filters -->
+      <div class="stats-filters">
+        <div class="filter-row">
+          <span class="filter-label">Kund</span>
+          <button class="flt${statFilterKund==='all'?' active':''}"    onclick="setStatKund('all')">Alla</button>
+          <button class="flt${statFilterKund==='dagab'?' active':''}"  onclick="setStatKund('dagab')">Dagab</button>
+          <button class="flt${statFilterKund==='martin'?' active':''}" onclick="setStatKund('martin')">Martin & Servera</button>
+          <button class="flt${statFilterKund==='coop'?' active':''}"   onclick="setStatKund('coop')">COOP</button>
+        </div>
+        <div class="filter-row">
+          <span class="filter-label">Vecka</span>
+          <button class="flt${statFilterVecka==='all'?' active':''}" onclick="setStatVecka('all')">Alla</button>
+          ${allWeeks.map(w=>`<button class="flt${statFilterVecka===w?' active':''}" onclick="setStatVecka(${w})">V${w}</button>`).join('')}
+        </div>
+        ${showAreas.length ? `
+        <div class="filter-row">
+          <span class="filter-label">Område</span>
+          <button class="flt${statFilterArea==='all'?' active':''}" onclick="setStatArea('all')">Alla</button>
+          ${showAreas.map(a=>`<button class="flt${statFilterArea===a?' active':''}" onclick="setStatArea('${a}')">${a}</button>`).join('')}
+        </div>` : ''}
+        <div class="filter-row">
+          <span class="filter-label">Status</span>
+          <button class="flt${statFilterTyp==='all'?' active':''}"    onclick="setStatTyp('all')">Alla</button>
+          <button class="flt late${statFilterTyp==='late'?' active':''}"   onclick="setStatTyp('late')">Sena</button>
+          <button class="flt early${statFilterTyp==='early'?' active':''}" onclick="setStatTyp('early')">Tidiga</button>
+        </div>
+      </div>
+
+      <!-- Summary cards -->
+      <div class="stats-summary-row">
+        ${[
+          ['Dagab',             dagabStat,  '#2563eb'],
+          ['Martin & Servera',  martinStat, '#7c3aed'],
+          ['COOP',              coopStat,   '#059669'],
+        ].filter(([,arr])=>arr.length).map(([name,arr,col])=>`
+          <div class="stats-summary-card">
+            <div class="ssc-name" style="color:${col}">${name}</div>
+            <div class="ssc-metrics">
+              <div class="ssc-m"><div class="ssc-val green">${avg(arr)}%</div><div class="ssc-lbl">Snitt i tid</div></div>
+              <div class="ssc-m"><div class="ssc-val red">${mn(arr)}%</div><div class="ssc-lbl">Lägsta dag</div></div>
+              <div class="ssc-m"><div class="ssc-val">${arr.length}</div><div class="ssc-lbl">Dagar</div></div>
+              <div class="ssc-m"><div class="ssc-val red">${totLate(arr)}</div><div class="ssc-lbl">Sena avvik</div></div>
+              <div class="ssc-m"><div class="ssc-val amber">${totEarly(arr)}</div><div class="ssc-lbl">Tidiga avvik</div></div>
+            </div>
+          </div>`).join('')}
+      </div>
+
+      <!-- Combined chart -->
+      <div class="chart-card full-width">
+        <h3>% i tid per dag</h3>
+        <p>Alla valda kunder jämförda</p>
+        <div class="chart-wrap tall"><canvas id="chartCombined"></canvas></div>
+      </div>
+
+      <!-- Individual bar charts -->
+      <div class="stats-grid">
+        ${dagabStat.length ? `
         <div class="chart-card">
           <h3>Dagab</h3>
-          <p>Daglig tidspassning — rutter i tid</p>
+          <p>Rutter i tid per dag</p>
           <div class="chart-wrap"><canvas id="chartDagab"></canvas></div>
-          <div class="stat-summary">
-            <div class="stat-summary-item">
-              <div class="stat-summary-val" style="color:var(--green)">${avgPct(dagabStat)}%</div>
-              <div class="stat-summary-lbl">Snitt i tid</div>
-            </div>
-            <div class="stat-summary-item">
-              <div class="stat-summary-val" style="color:var(--red)">${minPct(dagabStat)}%</div>
-              <div class="stat-summary-lbl">Lägsta dag</div>
-            </div>
-            <div class="stat-summary-item">
-              <div class="stat-summary-val">${dagabStat.length}</div>
-              <div class="stat-summary-lbl">Dagar</div>
-            </div>
-          </div>
-        </div>
-
+        </div>` : ''}
+        ${martinStat.length ? `
         <div class="chart-card">
           <h3>Martin & Servera</h3>
-          <p>Daglig tidspassning — körningar i tid</p>
+          <p>Leveranser i tid per dag</p>
           <div class="chart-wrap"><canvas id="chartMartin"></canvas></div>
-          <div class="stat-summary">
-            <div class="stat-summary-item">
-              <div class="stat-summary-val" style="color:var(--green)">${avgPct(martinStat)}%</div>
-              <div class="stat-summary-lbl">Snitt i tid</div>
-            </div>
-            <div class="stat-summary-item">
-              <div class="stat-summary-val" style="color:var(--red)">${minPct(martinStat)}%</div>
-              <div class="stat-summary-lbl">Lägsta dag</div>
-            </div>
-            <div class="stat-summary-item">
-              <div class="stat-summary-val">${martinStat.length}</div>
-              <div class="stat-summary-lbl">Dagar</div>
-            </div>
-          </div>
-        </div>
-
+        </div>` : ''}
+        ${coopStat.length ? `
         <div class="chart-card">
           <h3>COOP</h3>
-          <p>Daglig tidspassning — leveranser i tid (±60 min)</p>
+          <p>Leveranser i tid per dag</p>
           <div class="chart-wrap"><canvas id="chartCoop"></canvas></div>
-          <div class="stat-summary">
-            <div class="stat-summary-item">
-              <div class="stat-summary-val" style="color:var(--green)">${avgPct(coopStat)}%</div>
-              <div class="stat-summary-lbl">Snitt i tid</div>
-            </div>
-            <div class="stat-summary-item">
-              <div class="stat-summary-val" style="color:var(--red)">${minPct(coopStat)}%</div>
-              <div class="stat-summary-lbl">Lägsta dag</div>
-            </div>
-            <div class="stat-summary-item">
-              <div class="stat-summary-val">${coopStat.length}</div>
-              <div class="stat-summary-lbl">Dagar</div>
-            </div>
-          </div>
-        </div>
-
+        </div>` : ''}
       </div>
+
+      <!-- Detail table -->
+      <div class="stats-table-card">
+        <h3>Daglig data</h3>
+        <table>
+          <thead><tr><th>Kund</th><th>Dag</th><th>Vecka</th><th>I tid</th><th>Sena</th><th>Tidiga</th><th>Totalt</th></tr></thead>
+          <tbody>
+            ${[
+              ...dagabStat.map(s=>({...s,kund:'Dagab',kundCol:'#2563eb'})),
+              ...martinStat.map(s=>({...s,kund:'Martin & Servera',kundCol:'#7c3aed'})),
+              ...coopStat.map(s=>({...s,kund:'COOP',kundCol:'#059669'})),
+            ].map(s=>`
+              <tr>
+                <td><span style="color:${s.kundCol};font-weight:700;font-size:12px">${s.kund}</span></td>
+                <td>${s.label}</td>
+                <td><span class="area-tag">V${s.week}</span></td>
+                <td><span class="metric-val-sm ${s.pct>=90?'green':s.pct>=75?'amber':'red'}">${s.pct}%</span></td>
+                <td><span class="metric-val-sm red">${s.late}</span></td>
+                <td><span class="metric-val-sm amber">${s.early}</span></td>
+                <td>${s.total}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+
     </div>`;
 
-  // Draw charts after DOM is ready
   setTimeout(() => {
-    buildChart('chartDagab',  dagabStat.map(s=>s.label),  dagabStat.map(s=>s.pct),  '#2563eb');
-    buildChart('chartMartin', martinStat.map(s=>s.label), martinStat.map(s=>s.pct), '#7c3aed');
-    buildChart('chartCoop',   coopStat.map(s=>s.label),   coopStat.map(s=>s.pct),   '#059669');
+    // Combined line chart
+    const datasets = [];
+    if (dagabStat.length)  datasets.push({ label:'Dagab',           data: dagabStat.map(s=>({x:s.label,y:s.pct})),  borderColor:'#2563eb', backgroundColor:'#2563eb18', borderWidth:2.5, pointRadius:5, pointHoverRadius:7, tension:0.3, fill:false });
+    if (martinStat.length) datasets.push({ label:'Martin & Servera',data: martinStat.map(s=>({x:s.label,y:s.pct})), borderColor:'#7c3aed', backgroundColor:'#7c3aed18', borderWidth:2.5, pointRadius:5, pointHoverRadius:7, tension:0.3, fill:false });
+    if (coopStat.length)   datasets.push({ label:'COOP',            data: coopStat.map(s=>({x:s.label,y:s.pct})),   borderColor:'#059669', backgroundColor:'#05966918', borderWidth:2.5, pointRadius:5, pointHoverRadius:7, tension:0.3, fill:false });
+    buildCombinedChart('chartCombined', datasets);
+
+    // Individual bar charts
+    if (dagabStat.length)  buildChart('chartDagab',  dagabStat.map(s=>s.label),  dagabStat.map(s=>s.pct),  '#2563eb');
+    if (martinStat.length) buildChart('chartMartin', martinStat.map(s=>s.label), martinStat.map(s=>s.pct), '#7c3aed');
+    if (coopStat.length)   buildChart('chartCoop',   coopStat.map(s=>s.label),   coopStat.map(s=>s.pct),   '#059669');
   }, 50);
 }
+
 
 currentWeek = currentDay ? dayKeyToWeek(currentDay) : null;
 renderNav();

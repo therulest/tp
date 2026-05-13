@@ -509,6 +509,50 @@
     header, .main { padding: 1rem; }
     nav { padding: 0 1rem; }
   }
+
+  .stats-page { max-width: 1100px; margin: 0 auto; padding: 32px 24px; }
+  .stats-header { margin-bottom: 24px; }
+  .stats-header h1 { font-size: 28px; font-weight: 800; letter-spacing: -.5px; }
+  .stats-header p { color: var(--text-muted); font-size: 13px; margin-top: 3px; }
+
+  .stats-filters {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+
+  .stats-summary-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .stats-summary-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; flex: 1; min-width: 220px;
+  }
+  .ssc-name { font-size: 13px; font-weight: 700; margin-bottom: 12px; }
+  .ssc-metrics { display: flex; gap: 16px; flex-wrap: wrap; }
+  .ssc-m { text-align: center; }
+  .ssc-val { font-size: 22px; font-weight: 800; letter-spacing: -.5px; }
+  .ssc-val.green { color: var(--green); }
+  .ssc-val.red   { color: var(--red); }
+  .ssc-val.amber { color: var(--amber); }
+  .ssc-lbl { font-size: 10px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--text-muted); margin-top: 2px; }
+
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 16px; margin-bottom: 20px; }
+  .chart-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .chart-card.full-width { margin-bottom: 20px; }
+  .chart-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 3px; }
+  .chart-card p { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+  .chart-wrap { height: 200px; position: relative; }
+  .chart-wrap.tall { height: 300px; }
+
+  .stats-table-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 20px; overflow: hidden;
+  }
+  .stats-table-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .metric-val-sm { font-family: 'IBM Plex Mono', monospace; font-size: 13px; font-weight: 600; }
+  .metric-val-sm.green { color: var(--green); }
+  .metric-val-sm.red   { color: var(--red); }
+  .metric-val-sm.amber { color: var(--amber); }
+
 </style>
 </head>
 <body>

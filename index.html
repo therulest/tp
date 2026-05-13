@@ -729,6 +729,116 @@
     .coop-filter-row { gap: 5px; }
   }
 
+
+  /* ── Hamburger & mobile menu ─────────────────────────────────── */
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+
+  .hamburger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .hamburger:hover { background: var(--surface2); }
+  .hamburger span {
+    display: block;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: all 0.2s;
+    transform-origin: center;
+  }
+  .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+  .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  .mobile-menu {
+    display: none;
+    position: fixed;
+    top: var(--nav-h);
+    left: 0; right: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    z-index: 99;
+    transform: translateY(-8px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s, transform 0.18s;
+  }
+  .mobile-menu.open {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: all;
+  }
+  .mobile-menu-inner {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .mobile-menu-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 4px;
+    margin-bottom: 2px;
+  }
+  .mobile-menu-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+  .mobile-menu-btn:hover   { background: var(--bg); }
+  .mobile-menu-btn.active  { background: var(--accent-soft); color: var(--accent); border-color: #bfcfff; font-weight: 600; }
+  .mobile-menu-btn.no-data { opacity: 0.35; cursor: default; }
+  .mobile-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+  }
+
+  @media (max-width: 640px) {
+    .hamburger          { display: flex; }
+    .nav-customers      { display: none; }
+    #statBtn            { display: none; }
+    .mobile-menu        { display: block; }
+  }
+
+  /* Backdrop to close menu on tap outside */
+  .menu-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 98;
+  }
+  .menu-backdrop.open { display: block; }
+
 </style>
 </head>
 <body>
@@ -736,9 +846,23 @@
 <nav>
   <div class="nav-brand">Tidspassning</div>
   <div class="nav-customers" id="navCustomers"></div>
-  <div style="margin-left:auto"><button class="nav-btn" id="statBtn" onclick="showStats()">Statistik</button></div>
+  <div class="nav-right">
+    <button class="nav-btn" id="statBtn" onclick="showStats()">Statistik</button>
+    <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()" aria-label="Meny">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
 </nav>
+<div class="mobile-menu" id="mobileMenu">
+  <div class="mobile-menu-inner">
+    <div class="mobile-menu-label">Kund</div>
+    <div id="mobileNavCustomers"></div>
+    <div class="mobile-menu-divider"></div>
+    <button class="mobile-menu-btn" id="mobileStatBtn" onclick="showStats(); closeMobileMenu()">Statistik</button>
+  </div>
+</div>
 
+<div id="menuBackdrop" class="menu-backdrop" onclick="closeMobileMenu()"></div>
 <div id="appContent"></div>
 
 <script>
@@ -1227,11 +1351,52 @@ function setType(t) {
   renderTable();
 }
 
+
+// ── Mobile menu ─────────────────────────────────────────────────────────────
+function toggleMobileMenu() {
+  const menu = document.getElementById('mobileMenu');
+  const btn  = document.getElementById('hamburger');
+  const backdrop = document.getElementById('menuBackdrop');
+  const isOpen = menu.classList.contains('open');
+  if (isOpen) {
+    menu.classList.remove('open');
+    btn.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('open');
+  } else {
+    renderMobileNav();
+    menu.classList.add('open');
+    btn.classList.add('open');
+    if (backdrop) backdrop.classList.add('open');
+  }
+}
+
+function closeMobileMenu() {
+  document.getElementById('mobileMenu')?.classList.remove('open');
+  document.getElementById('hamburger')?.classList.remove('open');
+  document.getElementById('menuBackdrop')?.classList.remove('open');
+}
+
+function renderMobileNav() {
+  const el = document.getElementById('mobileNavCustomers');
+  if (!el) return;
+  el.innerHTML = customers.map(c =>
+    `<button class="mobile-menu-btn${c.key===currentCustomer?' active':''}${!c.hasData?' no-data':''}"
+      onclick="setCustomer('${c.key}'); closeMobileMenu();">${c.label}</button>`
+  ).join('');
+  // Stat button state
+  const mStatBtn = document.getElementById('mobileStatBtn');
+  if (mStatBtn) mStatBtn.className = 'mobile-menu-btn' + (statsVisible ? ' active' : '');
+}
+
 function renderNav() {
   document.getElementById("navCustomers").innerHTML = customers.map(c =>
     `<button class="nav-btn${c.key===currentCustomer?" active":""}${!c.hasData?" no-data":""}"
       onclick="setCustomer('${c.key}')">${c.label}</button>`
   ).join("");
+  // Keep mobile nav in sync if open
+  if (document.getElementById('mobileMenu')?.classList.contains('open')) {
+    renderMobileNav();
+  }
 }
 
 // ---- COOP filter state ----

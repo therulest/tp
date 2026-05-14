@@ -106,7 +106,16 @@
   }
 
   .nav-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border); }
-  .nav-btn.active { background: var(--accent-soft); color: var(--accent); border-color: #bfcfff; font-weight: 600; }
+  .nav-btn.active { background: var(--surface2); color: var(--text); border-color: var(--border-strong); font-weight: 600; }
+
+  .nav-logo {
+    width: 16px; height: 16px; border-radius: 3px; object-fit: contain;
+    display: inline-block; vertical-align: middle; margin-right: 2px;
+  }
+  .nav-logo-fallback {
+    display: none; width: 16px; height: 16px; border-radius: 3px;
+    vertical-align: middle; margin-right: 2px;
+  }
 
   .nav-btn.no-data { opacity: 0.35; cursor: default; position: relative; }
   .nav-btn.no-data::after {
@@ -867,7 +876,7 @@
   <div class="nav-brand">Tidspassning</div>
   <div class="nav-customers" id="navCustomers"></div>
   <div class="nav-right">
-    <button class="nav-btn" id="statBtn" onclick="showStats()">Statistik</button>
+    <button class="nav-btn" id="statBtn" onclick="showStats()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Statistik</button>
     <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()" aria-label="Meny">
       <span></span><span></span><span></span>
     </button>
@@ -886,6 +895,12 @@
 <div id="appContent"></div>
 
 <script>
+const CUSTOMER_LOGOS = {
+  dagab:  { url: 'https://www.dagab.se/favicon.ico',         color: '#e8252e' },
+  martin: { url: 'https://www.martinservera.se/favicon.ico', color: '#c8102e' },
+  coop:   { url: 'https://www.coop.se/favicon.ico',          color: '#00a550' },
+};
+
 const customers = [
   {
     key: "dagab",
@@ -1422,21 +1437,43 @@ function closeMobileMenu() {
 function renderMobileNav() {
   const el = document.getElementById('mobileNavCustomers');
   if (!el) return;
-  el.innerHTML = customers.map(c =>
-    `<button class="mobile-menu-btn${c.key===currentCustomer?' active':''}${!c.hasData?' no-data':''}"
-      onclick="setCustomer('${c.key}'); closeMobileMenu();">${c.label}</button>`
-  ).join('');
-  // Stat button state
+  el.innerHTML =
+    `<button class="mobile-menu-btn${currentView==='home'?' active':''}" onclick="goHome(); closeMobileMenu();">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:8px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Hem
+    </button>` +
+    customers.map(c => {
+      const logo = CUSTOMER_LOGOS[c.key];
+      const logoHtml = logo
+        ? `<img src="${logo.url}" style="width:16px;height:16px;border-radius:3px;object-fit:contain;vertical-align:-2px;margin-right:8px;" onerror="this.style.display='none'">`
+        : '';
+      return `<button class="mobile-menu-btn${c.key===currentCustomer&&!statsVisible?' active':''}${!c.hasData?' no-data':''}"
+        onclick="setCustomer('${c.key}'); closeMobileMenu();">${logoHtml}${c.label}</button>`;
+    }).join('');
   const mStatBtn = document.getElementById('mobileStatBtn');
   if (mStatBtn) mStatBtn.className = 'mobile-menu-btn' + (statsVisible ? ' active' : '');
 }
 
 function renderNav() {
-  document.getElementById("navCustomers").innerHTML = customers.map(c =>
-    `<button class="nav-btn${c.key===currentCustomer?" active":""}${!c.hasData?" no-data":""}"
-      onclick="setCustomer('${c.key}')">${c.label}</button>`
-  ).join("");
-  // Keep mobile nav in sync if open
+  const homeActive = !statsVisible && currentView === 'home';
+  document.getElementById("navCustomers").innerHTML =
+    // Home button
+    `<button class="nav-btn${homeActive?' active':''}" onclick="goHome()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:5px"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Hem
+    </button>` +
+    // Customer buttons with logos
+    customers.map(c => {
+      const logo = CUSTOMER_LOGOS[c.key];
+      const logoHtml = logo
+        ? `<img src="${logo.url}" class="nav-logo" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'">
+           <span class="nav-logo-fallback" style="background:${logo.color};"></span>`
+        : '';
+      return `<button class="nav-btn${c.key===currentCustomer&&!statsVisible?' active':''}${!c.hasData?' no-data':''}"
+        onclick="setCustomer('${c.key}')">${logoHtml}${c.label}</button>`;
+    }).join("");
+
+  // Stat button state
+  document.getElementById('statBtn').className = 'nav-btn' + (statsVisible ? ' active' : '');
+
   if (document.getElementById('mobileMenu')?.classList.contains('open')) {
     renderMobileNav();
   }
@@ -1981,10 +2018,39 @@ function renderTable() {
 
 
 let statsVisible = false;
+let currentView = 'customer'; // 'home' | 'customer' | 'stats'
+
+function goHome() {
+  statsVisible = false;
+  currentView = 'home';
+  const app = document.getElementById('appContent');
+  app.innerHTML = `
+    <div style="max-width:900px;margin:0 auto;padding:48px 24px;">
+      <h1 style="font-size:28px;font-weight:800;letter-spacing:-.5px;margin-bottom:6px;">Tidspassning</h1>
+      <p style="color:var(--text-muted);font-size:14px;margin-bottom:40px;">Välj en kund i menyn för att se avvikelserapport</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+        ${customers.filter(c=>c.hasData).map(c => {
+          const logo = CUSTOMER_LOGOS[c.key];
+          const lastDay = c.days[c.days.length-1];
+          const avvik = lastDay ? lastDay.avvikelser.length : 0;
+          return `<div onclick="setCustomer('${c.key}')" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;cursor:pointer;transition:border-color .15s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+              ${logo ? `<img src="${logo.url}" style="width:24px;height:24px;border-radius:4px;object-fit:contain;" onerror="this.style.display='none'">` : ''}
+              <span style="font-size:15px;font-weight:700;">${c.label}</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);">Senaste: ${lastDay?.label || '—'}</div>
+            <div style="font-size:12px;color:${avvik>0?'var(--red)':'var(--green)'};margin-top:4px;font-weight:600;">${avvik>0?avvik+' avvikelser':'Inga avvikelser'}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  renderNav();
+}
 let chartInstances = {};
 
 function showStats() {
   statsVisible = true;
+  currentView = 'stats';
   document.getElementById('statBtn').classList.add('active');
   document.querySelectorAll('.nav-btn:not(#statBtn)').forEach(b => b.classList.remove('active'));
   renderStats();
@@ -1992,6 +2058,7 @@ function showStats() {
 
 function hideStats() {
   statsVisible = false;
+  currentView = 'customer';
   document.getElementById('statBtn').classList.remove('active');
 }
 
@@ -2003,6 +2070,7 @@ function setCustomer(key) {
   currentDay = c.days.length ? c.days[c.days.length - 1].key : null;
   currentWeek = currentDay ? dayKeyToWeek(currentDay) : null;
   typeFilter = 'all';
+  currentView = 'customer'; statsVisible = false;
   dmFilterVecka = 'all'; dmFilterDag = 'all'; dmFilterArea = 'all'; dmFilterTyp = 'all'; dmFilterRoute = 'all';
   renderNav();
   renderContent();

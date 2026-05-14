@@ -856,6 +856,9 @@
   }
   .flt-select:focus { border-color: var(--accent); }
 
+
+  .filter-hint { font-size: 12px; color: var(--text-muted); font-style: italic; }
+
 </style>
 </head>
 <body>
@@ -1738,11 +1741,27 @@ function renderDmFilters() {
       ${veckor.map(v=>`<button class="flt${dmFilterVecka===v?' active':''}" onclick="setDmVecka('${v}')">${v.toUpperCase()}</button>`).join('')}
       ${dmFilterVecka!=='all'?`<button class="flt active" style="opacity:.5" onclick="setDmVecka('all')">✕</button>`:''}
     </div>
+    ${dmFilterVecka !== 'all' ? `
     <div class="coop-filter-row">
       <span class="filter-label">Dag</span>
-      ${daysForVecka.map(d=>`<button class="flt${dmFilterDag===d.key?' active':''}" onclick="setDmDag('${d.key}')">${d.label}</button>`).join('')}
+      ${['Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag','Söndag'].map((dayName, i) => {
+        // Find days in this week matching this weekday (0=Mon ... 6=Sun)
+        const matchingDays = daysForVecka.filter(d => {
+          const dd = parseInt(d.key.slice(0,2)), mm = parseInt(d.key.slice(2,4));
+          const wd = new Date(2026, mm-1, dd).getDay(); // 0=Sun,1=Mon...
+          const isoWd = wd === 0 ? 6 : wd - 1; // 0=Mon...6=Sun
+          return isoWd === i;
+        });
+        if (!matchingDays.length) return '';
+        const d = matchingDays[0];
+        return `<button class="flt${dmFilterDag===d.key?' active':''}" onclick="setDmDag('${d.key}')">${dayName}</button>`;
+      }).join('')}
       ${dmFilterDag!=='all'?`<button class="flt active" style="opacity:.5" onclick="setDmDag('all')">✕</button>`:''}
-    </div>
+    </div>` : `
+    <div class="coop-filter-row">
+      <span class="filter-label">Dag</span>
+      <span class="filter-hint">Välj en vecka för att filtrera på dag</span>
+    </div>`}
     <div class="coop-filter-row">
       <span class="filter-label">Område</span>
       ${areas.map(a=>`<button class="flt${dmFilterArea===a?' active':''}" onclick="setDmArea('${a}')">${a}</button>`).join('')}

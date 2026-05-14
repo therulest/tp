@@ -839,6 +839,23 @@
   }
   .menu-backdrop.open { display: block; }
 
+
+  .flt-select {
+    padding: 4px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+    max-width: 240px;
+  }
+  .flt-select:focus { border-color: var(--accent); }
+
 </style>
 </head>
 <body>
@@ -1517,6 +1534,7 @@ function setCoopTyp(t)      { coopFilterTyp=t; renderCoopFilters(); renderCoopMe
 let dmFilterVecka = 'all';
 let dmFilterDag   = 'all';
 let dmFilterArea  = 'all';
+let dmFilterRoute = 'all';
 let dmFilterTyp   = 'all';
 
 function dayKeyToDateStr(key) {
@@ -1529,15 +1547,15 @@ function dayKeyToDateStr(key) {
 
 function getDmFiltered() {
   const c = getCustomer();
-  // Collect all stops across all days, filtered
   let result = [];
   for (const d of c.days) {
     const week = dayKeyToWeek(d.key);
     if (dmFilterVecka !== 'all' && week !== dmFilterVecka) continue;
     if (dmFilterDag !== 'all' && d.key !== dmFilterDag) continue;
     for (const r of d.avvikelser) {
-      if (dmFilterArea !== 'all' && r.area !== dmFilterArea && r.id !== dmFilterArea) continue;
-      if (dmFilterTyp !== 'all' && r.type !== dmFilterTyp) continue;
+      if (dmFilterArea  !== 'all' && r.area !== dmFilterArea) continue;
+      if (dmFilterRoute !== 'all' && r.id   !== dmFilterRoute) continue;
+      if (dmFilterTyp   !== 'all' && r.type !== dmFilterTyp) continue;
       result.push({ dayKey: d.key, dayLabel: d.label, route: r });
     }
   }
@@ -1554,11 +1572,10 @@ function getDmBaseData() {
     if (dmFilterVecka !== 'all' && week !== dmFilterVecka) continue;
     if (dmFilterDag !== 'all' && d.key !== dmFilterDag) continue;
     totalRoutes += d.totalRoutes;
-    // Count total stops in this day's avvikelser + estimate ok stops
-    // totalStops: use d.totalStops if available, else count avvik stops as proxy
     totalStops += d.totalStops || d.avvikelser.reduce((a,r)=>a+r.stops.length,0);
     for (const r of d.avvikelser) {
-      if (dmFilterArea !== 'all' && r.area !== dmFilterArea && r.id !== dmFilterArea) continue;
+      if (dmFilterArea  !== 'all' && r.area !== dmFilterArea) continue;
+      if (dmFilterRoute !== 'all' && r.id   !== dmFilterRoute) continue;
       allAvvik.push(r);
     }
   }
@@ -1689,21 +1706,28 @@ function renderContent() {
 function renderDmFilters() {
   const c = getCustomer();
   const veckor = [...new Set(c.days.map(d => dayKeyToWeek(d.key)))].sort();
-  const dagMap = {};
-  c.days.forEach(d => { dagMap[d.key] = d.label; });
-
-  // Filter days by selected week
   const daysForVecka = dmFilterVecka === 'all'
     ? c.days
     : c.days.filter(d => dayKeyToWeek(d.key) === dmFilterVecka);
 
   // Area options
-  let areas;
-  if (c.key === 'dagab') {
-    areas = ['SDL','NORR','OSD'];
-  } else {
-    areas = [...new Set(c.days.flatMap(d => d.avvikelser.map(r => r.area)))].sort();
-  }
+  const areas = c.key === 'dagab' ? ['SDL','NORR','OSD']
+    : [...new Set(c.days.flatMap(d => d.avvikelser.map(r => r.area)))].filter(Boolean).sort();
+
+  // Route options — all unique route ids across filtered days/area
+  const routes = [...new Set(
+    c.days
+      .filter(d => {
+        const week = dayKeyToWeek(d.key);
+        if (dmFilterVecka !== 'all' && week !== dmFilterVecka) return false;
+        if (dmFilterDag !== 'all' && d.key !== dmFilterDag) return false;
+        return true;
+      })
+      .flatMap(d => d.avvikelser
+        .filter(r => dmFilterArea === 'all' || r.area === dmFilterArea)
+        .map(r => r.id)
+      )
+  )].sort();
 
   const el = document.getElementById('dmFilters');
   if (!el) return;
@@ -1723,6 +1747,13 @@ function renderDmFilters() {
       <span class="filter-label">Område</span>
       ${areas.map(a=>`<button class="flt${dmFilterArea===a?' active':''}" onclick="setDmArea('${a}')">${a}</button>`).join('')}
       ${dmFilterArea!=='all'?`<button class="flt active" style="opacity:.5" onclick="setDmArea('all')">✕</button>`:''}
+    </div>
+    <div class="coop-filter-row">
+      <span class="filter-label">Rutt</span>
+      <select class="flt-select" onchange="setDmRoute(this.value)">
+        <option value="all">Alla rutter</option>
+        ${routes.map(r=>`<option value="${r}"${dmFilterRoute===r?' selected':''}>${r}</option>`).join('')}
+      </select>
     </div>
     <div class="coop-filter-row">
       <span class="filter-label">Status</span>
@@ -1761,14 +1792,14 @@ function renderDmMetrics() {
     totalVal = totalLev;
     avvikVal = filteredAvvikStops;
   } else {
-    // Dagab: route-based
-    const filteredAvvik = dmFilterTyp === 'late' ? allAvvik.filter(r=>r.type==='late')
-                        : dmFilterTyp === 'early' ? allAvvik.filter(r=>r.type==='early')
-                        : allAvvik;
-    pct = totalRoutes > 0 ? Math.round(((totalRoutes - filteredAvvik.length) / totalRoutes) * 100) : 100;
-    totalLabel = 'Rutter';
+    // Dagab: stopp-based (same as Martin)
+    const filteredAvvikStops = dmFilterTyp === 'late' ? lateStops
+                             : dmFilterTyp === 'early' ? earlyStops
+                             : avvikStops;
+    pct = totalRoutes > 0 ? Math.round(((totalRoutes - filteredAvvikStops) / totalRoutes) * 100) : 100;
+    totalLabel = 'Stopp';
     totalVal = totalRoutes;
-    avvikVal = filteredAvvik.length;
+    avvikVal = filteredAvvikStops;
   }
 
   const avvikForGoodDay = dmFilterTyp === 'late' ? lateStops
@@ -1953,7 +1984,7 @@ function setCustomer(key) {
   currentDay = c.days.length ? c.days[c.days.length - 1].key : null;
   currentWeek = currentDay ? dayKeyToWeek(currentDay) : null;
   typeFilter = 'all';
-  dmFilterVecka = 'all'; dmFilterDag = 'all'; dmFilterArea = 'all'; dmFilterTyp = 'all';
+  dmFilterVecka = 'all'; dmFilterDag = 'all'; dmFilterArea = 'all'; dmFilterTyp = 'all'; dmFilterRoute = 'all';
   renderNav();
   renderContent();
 }

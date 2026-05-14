@@ -1836,7 +1836,7 @@ function renderDmTable() {
         <td><span class="window-txt">${s.window}</span></td>
         <td><span class="time-actual ${col}">${s.actual}</span></td>
         <td><span class="diff-txt ${col}">${s.diff}</span></td>
-        <td>${i===0?badge:''}</td>
+        <td>${badge}</td>
       </tr>`;
     });
   });
@@ -1953,7 +1953,7 @@ function renderTable() {
         <td><span class="window-txt">${s.window}</span></td>
         <td><span class="time-actual ${col}">${s.actual}</span></td>
         <td><span class="diff-txt ${col}">${s.diff}</span></td>
-        <td>${i===0?badge:""}</td>
+        <td>${badge}</td>
       </tr>`;
     });
   });

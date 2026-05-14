@@ -1772,7 +1772,10 @@ function renderDmFilters() {
         });
         if (!matchingDays.length) return '';
         const d = matchingDays[0];
-        return `<button class="flt${dmFilterDag===d.key?' active':''}" onclick="setDmDag('${d.key}')">${dayName}</button>`;
+        const dd2 = parseInt(d.key.slice(0,2)), mm2 = parseInt(d.key.slice(2,4));
+        const months = ['','jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+        const dateLabel = dd2 + ' ' + months[mm2];
+        return `<button class="flt${dmFilterDag===d.key?' active':''}" onclick="setDmDag('${d.key}')">${dayName} <span style="opacity:.6;font-size:11px;">(${dateLabel})</span></button>`;
       }).join('')}
       ${dmFilterDag!=='all'?`<button class="flt active" style="opacity:.5" onclick="setDmDag('all')">✕</button>`:''}
     </div>` : `

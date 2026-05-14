@@ -1317,6 +1317,17 @@ let currentDay = "1405";
 // currentWeek will be set on first render
 let typeFilter = "all";
 
+
+// Month helpers
+function dayKeyToMonth(key) {
+  return parseInt(key.slice(2,4)); // returns 1-12
+}
+function monthLabel(m) {
+  return ['','Januari','Februari','Mars','April','Maj','Juni','Juli','Augusti','September','Oktober','November','December'][m];
+}
+function coopDateToMonth(d) {
+  return new Date(d).getMonth() + 1;
+}
 // Week key from day key e.g. "0505" -> "v19", "1205" -> "v20"
 function dayKeyToWeek(key) {
   // Parse DDMM from key like "0505", "1205"
@@ -1461,6 +1472,7 @@ function renderNav() {
 }
 
 // ---- COOP filter state ----
+let coopFilterMonth = 'all';
 let coopFilterVecka = 'all';
 let coopFilterDatum = 'all';
 let coopFilterDistrikt = 'all';
@@ -1468,6 +1480,7 @@ let coopFilterTyp = 'all';
 
 function getCoopFiltered() {
   return coopData.filter(r => {
+    if (coopFilterMonth !== 'all' && coopDateToMonth(r.d) !== coopFilterMonth) return false;
     if (coopFilterVecka !== 'all' && String(r.v) !== coopFilterVecka) return false;
     if (coopFilterDatum !== 'all' && r.d !== coopFilterDatum) return false;
     if (coopFilterDistrikt !== 'all' && r.t !== coopFilterDistrikt) return false;
@@ -1513,13 +1526,15 @@ function renderCoopContent() {
 }
 
 function renderCoopFilters() {
-  const veckor = [...new Set(coopData.map(r=>r.v))].sort();
+  const months = [...new Set(coopData.map(r=>coopDateToMonth(r.d)))].sort((a,b)=>a-b);
+  const dataForMonth = coopFilterMonth === 'all' ? coopData : coopData.filter(r=>coopDateToMonth(r.d)===coopFilterMonth);
+  const veckor = [...new Set(dataForMonth.map(r=>r.v))].sort();
   const distrikt = [...new Set(coopData.map(r=>r.t))].sort();
 
   // Days filtered by selected week
   const datumInVecka = coopFilterVecka === 'all'
-    ? [...new Set(coopData.map(r=>r.d))].sort()
-    : [...new Set(coopData.filter(r=>String(r.v)===coopFilterVecka).map(r=>r.d))].sort();
+    ? [...new Set(dataForMonth.map(r=>r.d))].sort()
+    : [...new Set(dataForMonth.filter(r=>String(r.v)===coopFilterVecka).map(r=>r.d))].sort();
 
   // Day label with weekday name + date
   const WEEKDAYS = ['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'];
@@ -1532,6 +1547,12 @@ function renderCoopFilters() {
   }
 
   document.getElementById('coopFilters').innerHTML = `
+    ${months.length > 1 ? `
+    <div class="coop-filter-row">
+      <span class="filter-label">Månad</span>
+      ${months.map(m=>`<button class="flt${coopFilterMonth===m?' active':''}" onclick="setCoopMonth(${m})">${monthLabel(m)}</button>`).join('')}
+      ${coopFilterMonth!=='all'?`<button class="flt active" style="opacity:.5" onclick="setCoopMonth('all')">✕</button>`:''}
+    </div>` : ''}
     <div class="coop-filter-row">
       <span class="filter-label">Vecka</span>
       ${veckor.map(v=>`<button class="flt${coopFilterVecka===String(v)?' active':''}" onclick="setCoopVecka('${v}')">V${String(v).slice(4)}</button>`).join('')}
@@ -1562,6 +1583,7 @@ function renderCoopFilters() {
     </div>`;
 }
 
+function setCoopMonth(m)    { coopFilterMonth=m; coopFilterVecka='all'; coopFilterDatum='all'; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
 function setCoopVecka(v)    { coopFilterVecka=v==='all'?'all':String(v); coopFilterDatum='all'; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
 function setCoopDatum(d)    { coopFilterDatum=d; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
 function setCoopDistrikt(d) { coopFilterDistrikt=d; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
@@ -1587,6 +1609,8 @@ function getDmFiltered() {
   let result = [];
   for (const d of c.days) {
     const week = dayKeyToWeek(d.key);
+    const month = dayKeyToMonth(d.key);
+    if (dmFilterMonth !== 'all' && month !== dmFilterMonth) continue;
     if (dmFilterVecka !== 'all' && week !== dmFilterVecka) continue;
     if (dmFilterDag !== 'all' && d.key !== dmFilterDag) continue;
     for (const r of d.avvikelser) {
@@ -1606,6 +1630,8 @@ function getDmBaseData() {
   let allAvvik = [];
   for (const d of c.days) {
     const week = dayKeyToWeek(d.key);
+    const month = dayKeyToMonth(d.key);
+    if (dmFilterMonth !== 'all' && month !== dmFilterMonth) continue;
     if (dmFilterVecka !== 'all' && week !== dmFilterVecka) continue;
     if (dmFilterDag !== 'all' && d.key !== dmFilterDag) continue;
     totalRoutes += d.totalRoutes;
@@ -1619,6 +1645,7 @@ function getDmBaseData() {
   return { totalRoutes, totalStops, allAvvik };
 }
 
+function setDmMonth(m) { dmFilterMonth=m; dmFilterVecka='all'; dmFilterDag='all'; renderDmFilters(); renderDmMetrics(); renderDmTable(); }
 function setDmVecka(v) { dmFilterVecka=v; dmFilterDag='all'; renderDmFilters(); renderDmMetrics(); renderDmTable(); }
 function setDmDag(d)   { dmFilterDag=d; renderDmFilters(); renderDmMetrics(); renderDmTable(); }
 function setDmArea(a)  { dmFilterArea=a; renderDmFilters(); renderDmMetrics(); renderDmTable(); }
@@ -1628,6 +1655,7 @@ function setDmTyp(t)   { dmFilterTyp=t; renderDmFilters(); renderDmMetrics(); re
 function renderCoopMetrics() {
   // Base = alla leveranser med vecka/datum/distrikt-filter (ignorera statusfilter för totalen)
   const base = coopData.filter(r => {
+    if (coopFilterMonth !== 'all' && coopDateToMonth(r.d) !== coopFilterMonth) return false;
     if (coopFilterVecka !== 'all' && String(r.v) !== coopFilterVecka) return false;
     if (coopFilterDatum !== 'all' && r.d !== coopFilterDatum) return false;
     if (coopFilterDistrikt !== 'all' && r.t !== coopFilterDistrikt) return false;
@@ -1742,10 +1770,12 @@ function renderContent() {
 
 function renderDmFilters() {
   const c = getCustomer();
-  const veckor = [...new Set(c.days.map(d => dayKeyToWeek(d.key)))].sort();
+  const months = [...new Set(c.days.map(d => dayKeyToMonth(d.key)))].sort((a,b)=>a-b);
+  const daysForMonth = dmFilterMonth === 'all' ? c.days : c.days.filter(d => dayKeyToMonth(d.key) === dmFilterMonth);
+  const veckor = [...new Set(daysForMonth.map(d => dayKeyToWeek(d.key)))].sort();
   const daysForVecka = dmFilterVecka === 'all'
-    ? c.days
-    : c.days.filter(d => dayKeyToWeek(d.key) === dmFilterVecka);
+    ? daysForMonth
+    : daysForMonth.filter(d => dayKeyToWeek(d.key) === dmFilterVecka);
 
   // Area options
   const areas = c.key === 'dagab' ? ['SDL','NORR','OSD']
@@ -2071,7 +2101,7 @@ function setCustomer(key) {
   currentWeek = currentDay ? dayKeyToWeek(currentDay) : null;
   typeFilter = 'all';
   currentView = 'customer'; statsVisible = false;
-  dmFilterVecka = 'all'; dmFilterDag = 'all'; dmFilterArea = 'all'; dmFilterTyp = 'all'; dmFilterRoute = 'all';
+  dmFilterMonth = 'all'; dmFilterVecka = 'all'; dmFilterDag = 'all'; dmFilterArea = 'all'; dmFilterTyp = 'all'; dmFilterRoute = 'all';
   renderNav();
   renderContent();
 }

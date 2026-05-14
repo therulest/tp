@@ -1514,23 +1514,39 @@ function renderCoopContent() {
 
 function renderCoopFilters() {
   const veckor = [...new Set(coopData.map(r=>r.v))].sort();
-  const datum  = [...new Set(coopData.map(r=>r.d))].sort();
   const distrikt = [...new Set(coopData.map(r=>r.t))].sort();
 
-  const datumLabels = {};
-  coopData.forEach(r => { datumLabels[r.d] = r.dl + ' (' + r.dag + ')'; });
+  // Days filtered by selected week
+  const datumInVecka = coopFilterVecka === 'all'
+    ? [...new Set(coopData.map(r=>r.d))].sort()
+    : [...new Set(coopData.filter(r=>String(r.v)===coopFilterVecka).map(r=>r.d))].sort();
+
+  // Day label with weekday name + date
+  const WEEKDAYS = ['Söndag','Måndag','Tisdag','Onsdag','Torsdag','Fredag','Lördag'];
+  const MONTHS = ['','jan','feb','mar','apr','maj','jun','jul','aug','sep','okt','nov','dec'];
+  function coopDayLabel(d) {
+    const dt = new Date(d);
+    const dayName = WEEKDAYS[dt.getDay()];
+    const dateStr = dt.getDate() + ' ' + MONTHS[dt.getMonth()+1];
+    return `${dayName} <span style="opacity:.6;font-size:11px;">(${dateStr})</span>`;
+  }
 
   document.getElementById('coopFilters').innerHTML = `
     <div class="coop-filter-row">
       <span class="filter-label">Vecka</span>
-      ${veckor.map(v=>`<button class="flt${coopFilterVecka===String(v)?' active':''}" onclick="setCoopVecka('${v}')">${String(v).slice(4)}</button>`).join('')}
+      ${veckor.map(v=>`<button class="flt${coopFilterVecka===String(v)?' active':''}" onclick="setCoopVecka('${v}')">V${String(v).slice(4)}</button>`).join('')}
       ${coopFilterVecka!=='all'?`<button class="flt active" style="opacity:.5" onclick="setCoopVecka('all')">✕</button>`:''}
     </div>
+    ${coopFilterVecka !== 'all' ? `
     <div class="coop-filter-row">
       <span class="filter-label">Dag</span>
-      ${datum.map(d=>`<button class="flt${coopFilterDatum===d?' active':''}" onclick="setCoopDatum('${d}')">${datumLabels[d]}</button>`).join('')}
+      ${datumInVecka.map(d=>`<button class="flt${coopFilterDatum===d?' active':''}" onclick="setCoopDatum('${d}')">${coopDayLabel(d)}</button>`).join('')}
       ${coopFilterDatum!=='all'?`<button class="flt active" style="opacity:.5" onclick="setCoopDatum('all')">✕</button>`:''}
-    </div>
+    </div>` : `
+    <div class="coop-filter-row">
+      <span class="filter-label">Dag</span>
+      <span class="filter-hint">Välj en vecka för att filtrera på dag</span>
+    </div>`}
     <div class="coop-filter-row">
       <span class="filter-label">Distrikt</span>
       ${distrikt.map(d=>`<button class="flt${coopFilterDistrikt===d?' active':''}" onclick="setCoopDistrikt('${d}')">${d}</button>`).join('')}
@@ -1546,7 +1562,7 @@ function renderCoopFilters() {
     </div>`;
 }
 
-function setCoopVecka(v)    { coopFilterVecka=v==='all'?'all':String(v); renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
+function setCoopVecka(v)    { coopFilterVecka=v==='all'?'all':String(v); coopFilterDatum='all'; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
 function setCoopDatum(d)    { coopFilterDatum=d; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
 function setCoopDistrikt(d) { coopFilterDistrikt=d; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
 function setCoopTyp(t)      { coopFilterTyp=t; renderCoopFilters(); renderCoopMetrics(); renderCoopTable(); }
